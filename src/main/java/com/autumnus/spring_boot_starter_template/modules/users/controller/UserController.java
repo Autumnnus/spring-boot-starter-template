@@ -11,25 +11,18 @@ import com.autumnus.spring_boot_starter_template.modules.users.entity.UserRole;
 import com.autumnus.spring_boot_starter_template.modules.users.entity.UserStatus;
 import com.autumnus.spring_boot_starter_template.modules.users.service.UserService;
 import jakarta.validation.Valid;
-import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/users")
-public class UserController {
+public class UserController implements UserApi {
 
     private final UserService userService;
 
@@ -39,6 +32,7 @@ public class UserController {
 
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
+    @Override
     public ApiResponse<?> listUsers(
             @PageableDefault Pageable pageable,
             @RequestParam(required = false) UserRole role,
@@ -51,37 +45,41 @@ public class UserController {
                 .totalElements(result.getTotalElements())
                 .totalPages(result.getTotalPages())
                 .build();
-        return ApiResponse.of(RequestContextHolder.getContext().getTraceId(), result.getContent(), meta);
+        return ApiResponse.ok(RequestContextHolder.getContext().getTraceId(), result.getContent(), meta);
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN') or @ownershipGuard.isOwner(#id)")
+    @Override
     public ApiResponse<UserResponse> getUser(@PathVariable UUID id) {
         final UserResponse response = userService.getUser(id);
-        return ApiResponse.of(RequestContextHolder.getContext().getTraceId(), response);
+        return ApiResponse.ok(RequestContextHolder.getContext().getTraceId(), response);
     }
 
     @PostMapping
     @Idempotent
     @PreAuthorize("hasAnyRole('ADMIN','MODERATOR')")
+    @Override
     public ResponseEntity<ApiResponse<UserResponse>> createUser(@Valid @RequestBody UserCreateRequest request) {
         final UserResponse response = userService.createUser(request);
-        final ApiResponse<UserResponse> payload = ApiResponse.of(RequestContextHolder.getContext().getTraceId(), response);
+        final ApiResponse<UserResponse> payload = ApiResponse.ok(RequestContextHolder.getContext().getTraceId(), response);
         return ResponseEntity.status(201).body(payload);
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN') or @ownershipGuard.isOwner(#id)")
+    @Override
     public ApiResponse<UserResponse> updateUser(
             @PathVariable UUID id,
             @Valid @RequestBody UserUpdateRequest request
     ) {
         final UserResponse response = userService.updateUser(id, request);
-        return ApiResponse.of(RequestContextHolder.getContext().getTraceId(), response);
+        return ApiResponse.ok(RequestContextHolder.getContext().getTraceId(), response);
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
+    @Override
     public ResponseEntity<Void> deleteUser(@PathVariable UUID id) {
         userService.deleteUser(id);
         return ResponseEntity.noContent().build();

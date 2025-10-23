@@ -2,11 +2,12 @@ package com.autumnus.spring_boot_starter_template.modules.users.dto;
 
 import com.autumnus.spring_boot_starter_template.modules.users.entity.UserRole;
 import com.autumnus.spring_boot_starter_template.modules.users.entity.UserStatus;
+import lombok.Builder;
+import lombok.Getter;
+
 import java.time.Instant;
 import java.util.Set;
 import java.util.UUID;
-import lombok.Builder;
-import lombok.Getter;
 
 @Getter
 @Builder
