@@ -1,0 +1,43 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/app
+    username: app
+    password: app
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    open-in-view: false
+  data:
+    redis:
+      host: localhost
+      port: 6379
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
+logging:
+  pattern:
+    level: "%5p [trace=%X{traceId}]"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+application:
+  security:
+    jwt-secret: change-me-change-me-change-me-change-me
+    access-token-ttl: PT15M
+    public-endpoints:
+      - /actuator/**
+      - /swagger-ui/**
+      - /v3/api-docs/**
+  rate-limit:
+    capacity: 100
+    refill-period: PT1M

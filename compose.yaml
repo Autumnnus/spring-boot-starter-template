@@ -1,17 +1,17 @@
 services:
   postgres:
     image: postgres:16-trixie
-    container_name: nest-starter-postgres
+    container_name: spring-starter-postgres
     environment:
       - 'POSTGRES_DB=postgres'
-      - 'POSTGRES_USER=nest-starter-user'
-      - 'POSTGRES_PASSWORD=nest-starter-password'
+      - 'POSTGRES_USER=spring-starter-user'
+      - 'POSTGRES_PASSWORD=spring-starter-password'
     ports:
       - "15432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U autumnus-postgres -d postgres" ]
+      test: [ "CMD-SHELL", "pg_isready -U spring-starter-user -d postgres" ]
       interval: 5s
       timeout: 5s
       retries: 10
