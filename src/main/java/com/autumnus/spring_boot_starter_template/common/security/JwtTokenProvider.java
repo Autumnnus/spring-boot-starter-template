@@ -18,10 +18,12 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
 
+import javax.crypto.SecretKey;
+
 @Component
 public class JwtTokenProvider {
 
-    private final Key signingKey;
+    private final SecretKey signingKey;
     private final SecurityProperties properties;
 
     public JwtTokenProvider(SecurityProperties properties) {
@@ -59,7 +61,7 @@ public class JwtTokenProvider {
 
     public Claims parseClaims(String token) {
         return Jwts.parser()
-                .setSigningKey(signingKey)
+                .verifyWith(signingKey)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();

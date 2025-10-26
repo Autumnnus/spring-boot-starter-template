@@ -1,8 +1,16 @@
 spring:
+  profiles:
+    active:
+      - dev
   datasource:
     url: jdbc:postgresql://localhost:5432/app
     username: app
     password: app
+  docker:
+    compose:
+      lifecycle-management: START_AND_STOP
+      skip:
+        in-tests: true
   jpa:
     hibernate:
       ddl-auto: update

@@ -54,7 +54,7 @@ public class UserServiceImpl implements UserService {
         });
         final User user = userMapper.toEntity(request);
         if (user.getRoles().isEmpty()) {
-            user.setRoles(new HashSet<>(Set.of(UserRole.ROLE_USER)));
+            user.setRoles(new HashSet<>(Set.of(UserRole.USER)));
         }
         return userMapper.toResponse(userRepository.save(user));
     }

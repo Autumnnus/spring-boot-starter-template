@@ -14,6 +14,37 @@ This project provides an opinionated Spring Boot starter template that implement
 - **OpenAPI 3 documentation** powered by Springdoc at `/swagger-ui/index.html`.
 - **ModelMapper integration** for DTO ↔ entity transformations.
 - **Ready-to-use testing profile** backed by an in-memory H2 database.
+---
+
+## 🌐 Geliştirici Servisleri
+
+| Service                 | URL | Description            |
+|-------------------------|-----|------------------------|
+| **Swagger (Gateway)**   | [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html) | API dokümantasyonu     |
+| **Redis Insight**       | [http://localhost:5540](http://localhost:5540) | Redis yönetim arayüzü  |
+| **RabbitMQ Management** | [http://localhost:15672](http://localhost:15672) | Queue Management       |
+| **Elasticsearch**       | [http://localhost:9200](http://localhost:9200) | Search & Index Service |
+| **Kibana**              | [http://localhost:5601](http://localhost:5601) | Log Interface          |
+| **APM Server**          | [http://localhost:8200](http://localhost:8200) | APM Server             |
+| **Grafana** | [http://localhost:3000](http://localhost:3000) |  Observation panels  |
+
+---
+
+### Kibana Setup
+
+**Generate Kibana Service Token:**
+
+```bash
+docker exec -it spring-boot-starter-elasticsearch \
+  bin/elasticsearch-service-tokens create elastic/kibana kibana-token
+```
+
+**Create Kibana Service Password:**
+
+```bash
+docker exec -it spring-boot-starter-elasticsearch bash
+```
+
 
 ## 📦 Project Structure
 

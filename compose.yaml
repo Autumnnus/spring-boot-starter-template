@@ -1,34 +1,125 @@
 services:
   postgres:
     image: postgres:16-trixie
-    container_name: spring-starter-postgres
+    container_name: spring-boot-starter-postgres
     environment:
       - 'POSTGRES_DB=postgres'
-      - 'POSTGRES_USER=spring-starter-user'
-      - 'POSTGRES_PASSWORD=spring-starter-password'
+      - 'POSTGRES_USER=spring-boot-starter-user'
+      - 'POSTGRES_PASSWORD=spring-boot-starter-password'
     ports:
       - "15432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U spring-starter-user -d postgres" ]
+      test: [ "CMD-SHELL", "pg_isready -U spring-boot-starter-user -d postgres" ]
       interval: 5s
       timeout: 5s
       retries: 10
-#  elasticsearch:
-#    image: 'docker.elastic.co/elasticsearch/elasticsearch:7.17.10'
-#    environment:
-#      - 'ELASTIC_PASSWORD=secret'
-#      - 'discovery.type=single-node'
-#      - 'xpack.security.enabled=false'
-#    ports:
-#      - '9200'
-#      - '9300'
-#  redis:
-#    image: 'redis:latest'
-#    ports:
-#      - '6379'
+
+  redis:
+    image: 'redis:latest'
+    container_name: spring-boot-starter-redis
+    ports:
+      - "6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: [ "CMD-SHELL", "redis-cli ping | grep PONG" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis-insight:
+    image: redis/redisinsight:latest
+    container_name: spring-boot-starter-redis-insight
+    restart: always
+    ports:
+      - "5540:5540"
+    volumes:
+      - redis-insight:/data
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.3
+    container_name: spring-boot-starter-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=true
+      - xpack.security.transport.ssl.enabled=false
+      - ELASTIC_USERNAME=elastic
+      - ELASTIC_PASSWORD=changeme
+    ports:
+      - 9200:9200
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    networks:
+      - elastic
+    healthcheck:
+      test: ["CMD-SHELL", "curl -u elastic:changeme -fsS http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=1s"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.15.3
+    container_name: spring-boot-starter-kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      # 1) YA kullanıcı/şifre kullan:
+      - ELASTICSEARCH_USERNAME=kibana_system
+      - ELASTICSEARCH_PASSWORD=changeme
+      - ELASTICSEARCH_SERVICE_TOKEN=AAEAAWVsYXN0aWMva2liYW5hL2tpYmFuYS10b2tlbjpnSnRrSVVnLVFZU2szZEQ1ajF1X19B
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    ports:
+      - 5601:5601
+    networks:
+      - elastic
+
+    healthcheck:
+      test: [ "CMD", "curl", "-fsS", "http://localhost:5601/api/status" ]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+  apm-server:
+    image: docker.elastic.co/apm/apm-server:8.15.3
+    container_name: spring-boot-starter-apm-server
+    cap_add: [ "CHOWN", "DAC_OVERRIDE", "SETGID", "SETUID" ]
+    cap_drop: [ "ALL" ]
+    command: >
+      apm-server -e
+        -E apm-server.rum.enabled=true
+        -E setup.kibana.host=kibana:5601
+        -E setup.template.settings.index.number_of_replicas=0
+        -E apm-server.kibana.enabled=true
+        -E apm-server.kibana.host=kibana:5601
+        -E output.elasticsearch.hosts=["elasticsearch:9200"]
+    healthcheck:
+      interval: 10s
+      retries: 12
+      test: curl --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:8200/
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      kibana:
+        condition: service_healthy
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - ELASTICSEARCH_USERNAME=elastic
+      - ELASTIC_PASSWORD=changeme
+      - kibana.host=http://kibana:5601
+    ports:
+      - 8200:8200
+    networks:
+      - elastic
 
 volumes:
   pgdata:
+  redisdata:
+  redis-insight:
+  esdata:
 
+networks:
+  elastic:
+    driver: bridge

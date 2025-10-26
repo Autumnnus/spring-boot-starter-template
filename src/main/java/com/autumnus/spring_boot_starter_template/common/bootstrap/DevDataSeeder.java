@@ -1,47 +1,49 @@
 package com.autumnus.spring_boot_starter_template.common.bootstrap;
 
-import com.autumnus.spring_boot_starter_template.modules.users.dto.UserCreateRequest;
+import com.autumnus.spring_boot_starter_template.modules.users.entity.User;
 import com.autumnus.spring_boot_starter_template.modules.users.entity.UserRole;
 import com.autumnus.spring_boot_starter_template.modules.users.entity.UserStatus;
-import com.autumnus.spring_boot_starter_template.modules.users.service.UserService;
-import jakarta.transaction.Transactional;
+import com.autumnus.spring_boot_starter_template.modules.users.repository.UserRepository;
 import org.springframework.boot.CommandLineRunner;
-import org.springframework.context.annotation.Profile;
-import org.springframework.stereotype.Component;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
-@Component
-@Profile("dev")
-public class DevDataSeeder implements CommandLineRunner {
+import java.util.Set;
 
-    private final UserService userService;
+@Configuration
+public class DevDataSeeder {
 
-    public DevDataSeeder(UserService userService) {
-        this.userService = userService;
-    }
+    @Bean
+    CommandLineRunner initDatabase(UserRepository userRepository) {
+        return args -> {
+            if (userRepository.count() == 0) {
 
-    @Override
-    @Transactional
-    public void run(String... args) {
-        // idempotent: varsa tekrar ekleme
-        seedUser("admin@example.com", "Admin", "User", UserRole.ROLE_ADMIN);
-        seedUser("mod@example.com", "Mod", "User", UserRole.ROLE_MODERATOR);
-        seedUser("user@example.com", "Regular", "User", UserRole.ROLE_USER);
-    }
+                User admin = new User();
+                admin.setEmail("admin@example.com");
+                admin.setDisplayName("Admin User");
+                admin.setStatus(UserStatus.ACTIVE);
+                admin.setRoles(Set.of(UserRole.ADMIN, UserRole.USER));
 
-    private void seedUser(String email, String name, String surname, UserRole role) {
-        // userService tarafında "mail var mı?" kontrolü yapıyorsun (ideal)
-        try {
-            var req = UserCreateRequest.builder()
-                    .email(email)
-                    .password("Passw0rd!")
-                    .name(name)
-                    .surname(surname)
-                    .role(role)
-                    .status(UserStatus.ACTIVE)
-                    .build();
-            userService.createUser(req);
-        } catch (Exception ignored) {
-            // already exists vs. validation vb. durumlarda sessiz geç
-        }
+                userRepository.save(admin);
+
+                User standardUser = new User();
+                standardUser.setEmail("user@example.com");
+                standardUser.setDisplayName("Standard User");
+                standardUser.setStatus(UserStatus.ACTIVE);
+                standardUser.setRoles(Set.of(UserRole.USER));
+
+                userRepository.save(standardUser);
+
+                User inactiveUser = new User();
+                inactiveUser.setEmail("inactive@example.com");
+                inactiveUser.setDisplayName("Inactive User");
+                inactiveUser.setStatus(UserStatus.INACTIVE);
+                inactiveUser.setRoles(Set.of(UserRole.USER));
+
+                userRepository.save(inactiveUser);
+
+                System.out.println("Mock kullanıcı verileri veritabanına eklendi.");
+            }
+        };
     }
 }
