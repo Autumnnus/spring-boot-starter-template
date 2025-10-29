@@ -2,7 +2,11 @@ package com.autumnus.spring_boot_starter_template.common.logging;
 
 import com.autumnus.spring_boot_starter_template.common.context.RequestContext;
 import com.autumnus.spring_boot_starter_template.common.context.RequestContextHolder;
-import jakarta.servlet.*;
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.MDC;
 import org.springframework.core.Ordered;
@@ -10,6 +14,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -31,6 +36,7 @@ public class TraceIdFilter implements Filter {
             final RequestContext context = RequestContext.builder()
                     .traceId(traceId)
                     .ipAddress(httpRequest.getRemoteAddr())
+                    .requestTime(Instant.now())
                     .build();
             RequestContextHolder.setContext(context);
         }

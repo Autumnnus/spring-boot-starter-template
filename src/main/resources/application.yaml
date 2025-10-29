@@ -1,4 +1,10 @@
 spring:
+  elasticsearch:
+    uris: https://localhost:9200
+    username: elastic
+    password: changeme
+    ssl:
+      bundle: config/certs/http.p12
   profiles:
     active:
       - dev
@@ -11,7 +17,6 @@ spring:
       lifecycle-management: START_AND_STOP
       stop:
         command: down
-        arguments: --volumes --remove-orphans
       skip:
         in-tests: true
   jpa:
