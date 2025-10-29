@@ -1,10 +1,8 @@
 package com.autumnus.spring_boot_starter_template.modules.users.dto;
 
-import com.autumnus.spring_boot_starter_template.modules.users.entity.UserRole;
-import com.autumnus.spring_boot_starter_template.modules.users.entity.UserStatus;
+import com.autumnus.spring_boot_starter_template.modules.users.entity.RoleName;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
 
 import java.util.Set;
@@ -15,12 +13,14 @@ public record UserCreateRequest(
         @NotBlank(message = "email is required")
         String email,
 
-        @NotBlank(message = "displayName is required")
-        String displayName,
+        @NotBlank(message = "username is required")
+        String username,
 
-        @NotNull(message = "status is required")
-        UserStatus status,
+        @NotBlank(message = "password is required")
+        String password,
 
-        Set<UserRole> roles
+        Set<RoleName> roles,
+
+        Boolean active
 ) {
 }

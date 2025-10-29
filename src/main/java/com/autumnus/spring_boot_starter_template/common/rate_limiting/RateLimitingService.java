@@ -4,9 +4,10 @@ import com.autumnus.spring_boot_starter_template.common.config.RateLimitingPrope
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.Refill;
+import org.springframework.stereotype.Service;
+
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import org.springframework.stereotype.Service;
 
 @Service
 public class RateLimitingService {

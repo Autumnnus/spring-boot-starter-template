@@ -1,7 +1,8 @@
 package com.autumnus.spring_boot_starter_template.common.security;
 
-import java.util.UUID;
 import org.springframework.stereotype.Component;
+
+import java.util.UUID;
 
 @Component
 public class OwnershipGuard {

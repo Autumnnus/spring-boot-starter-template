@@ -1,54 +1,52 @@
 package com.autumnus.spring_boot_starter_template.modules.users.mapper;
 
-import com.autumnus.spring_boot_starter_template.modules.users.dto.UserCreateRequest;
 import com.autumnus.spring_boot_starter_template.modules.users.dto.UserResponse;
 import com.autumnus.spring_boot_starter_template.modules.users.dto.UserUpdateRequest;
+import com.autumnus.spring_boot_starter_template.modules.users.entity.RoleName;
 import com.autumnus.spring_boot_starter_template.modules.users.entity.User;
-import java.util.HashSet;
-import org.modelmapper.ModelMapper;
+import com.autumnus.spring_boot_starter_template.modules.users.entity.UserRoleAssignment;
 import org.springframework.stereotype.Component;
+
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Component
 public class UserMapper {
 
-    private final ModelMapper modelMapper;
-
-    public UserMapper(ModelMapper modelMapper) {
-        this.modelMapper = modelMapper;
-    }
-
-    public User toEntity(UserCreateRequest request) {
-        final User user = modelMapper.map(request, User.class);
-        if (user.getRoles() == null) {
-            user.setRoles(new HashSet<>());
-        }
-        if (request.roles() != null) {
-            user.setRoles(new HashSet<>(request.roles()));
-        }
-        return user;
-    }
-
     public void updateEntity(UserUpdateRequest request, User user) {
-        if (request.displayName() != null) {
-            user.setDisplayName(request.displayName());
+        if (request.email() != null) {
+            user.setEmail(request.email());
         }
-        if (request.status() != null) {
-            user.setStatus(request.status());
+        if (request.username() != null) {
+            user.setUsername(request.username());
         }
-        if (request.roles() != null) {
-            user.setRoles(new HashSet<>(request.roles()));
+        if (request.active() != null) {
+            user.setActive(request.active());
         }
     }
 
-    public UserResponse toResponse(User user) {
+    public UserResponse toResponse(User user, Set<RoleName> roles) {
         return UserResponse.builder()
-                .id(user.getId())
+                .uuid(user.getUuid())
                 .email(user.getEmail())
-                .displayName(user.getDisplayName())
-                .status(user.getStatus())
-                .roles(user.getRoles())
+                .username(user.getUsername())
+                .active(user.isActive())
+                .emailVerified(user.isEmailVerified())
+                .roles(roles)
+                .lastLoginAt(user.getLastLoginAt())
+                .passwordChangedAt(user.getPasswordChangedAt())
+                .failedLoginAttempts(user.getFailedLoginAttempts())
+                .lockedUntil(user.getLockedUntil())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
                 .build();
+    }
+
+    public Set<RoleName> extractRoleNames(User user) {
+        return user.getRoleAssignments()
+                .stream()
+                .map(UserRoleAssignment::getRole)
+                .map(role -> role.getName())
+                .collect(Collectors.toUnmodifiableSet());
     }
 }
