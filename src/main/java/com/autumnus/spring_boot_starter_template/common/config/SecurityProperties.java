@@ -11,10 +11,12 @@ public class SecurityProperties {
 
     private String jwtSecret;
     private Duration accessTokenTtl = Duration.ofMinutes(15);
+    private Duration refreshTokenTtl = Duration.ofDays(7);
     private List<String> publicEndpoints = List.of(
             "/actuator/**",
             "/swagger-ui/**",
-            "/v3/api-docs/**"
+            "/v3/api-docs/**",
+            "/api/v1/auth/**"
     );
 
     public String getJwtSecret() {
@@ -31,6 +33,14 @@ public class SecurityProperties {
 
     public void setAccessTokenTtl(Duration accessTokenTtl) {
         this.accessTokenTtl = accessTokenTtl;
+    }
+
+    public Duration getRefreshTokenTtl() {
+        return refreshTokenTtl;
+    }
+
+    public void setRefreshTokenTtl(Duration refreshTokenTtl) {
+        this.refreshTokenTtl = refreshTokenTtl;
     }
 
     public List<String> getPublicEndpoints() {

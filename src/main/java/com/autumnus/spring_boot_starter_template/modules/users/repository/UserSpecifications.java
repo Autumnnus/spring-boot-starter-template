@@ -3,6 +3,8 @@ package com.autumnus.spring_boot_starter_template.modules.users.repository;
 import com.autumnus.spring_boot_starter_template.modules.users.entity.User;
 import com.autumnus.spring_boot_starter_template.modules.users.entity.UserRole;
 import com.autumnus.spring_boot_starter_template.modules.users.entity.UserStatus;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.util.StringUtils;
 
@@ -26,7 +28,10 @@ public final class UserSpecifications {
             if (role == null) {
                 return cb.conjunction();
             }
-            return cb.isMember(role, root.get("roles"));
+            query.distinct(true);
+            final Join<Object, Object> assignments = root.join("roleAssignments", JoinType.LEFT);
+            final Join<Object, Object> roleJoin = assignments.join("role", JoinType.LEFT);
+            return cb.equal(cb.upper(roleJoin.get("name")), role.name());
         };
     }
 }

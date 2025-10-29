@@ -1,13 +1,6 @@
 package com.autumnus.spring_boot_starter_template.common.persistence;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.MappedSuperclass;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.PreUpdate;
-import jakarta.persistence.Version;
+import jakarta.persistence.*;
 import java.time.Instant;
 import java.util.UUID;
 import lombok.Getter;
@@ -19,8 +12,11 @@ import lombok.Setter;
 public abstract class BaseEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false, updatable = false, unique = true)
+    private UUID uuid;
 
     @Version
     private Long version;
@@ -31,11 +27,17 @@ public abstract class BaseEntity {
     @Column(nullable = false)
     private Instant updatedAt;
 
+    @Column
+    private Instant deletedAt;
+
     @PrePersist
     protected void onCreate() {
         final Instant now = Instant.now();
         this.createdAt = now;
         this.updatedAt = now;
+        if (this.uuid == null) {
+            this.uuid = UUID.randomUUID();
+        }
     }
 
     @PreUpdate
