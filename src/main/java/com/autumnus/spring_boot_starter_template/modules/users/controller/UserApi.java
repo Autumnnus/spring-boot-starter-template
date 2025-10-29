@@ -4,8 +4,7 @@ import com.autumnus.spring_boot_starter_template.common.api.ApiResponse;
 import com.autumnus.spring_boot_starter_template.modules.users.dto.UserCreateRequest;
 import com.autumnus.spring_boot_starter_template.modules.users.dto.UserResponse;
 import com.autumnus.spring_boot_starter_template.modules.users.dto.UserUpdateRequest;
-import com.autumnus.spring_boot_starter_template.modules.users.entity.UserRole;
-import com.autumnus.spring_boot_starter_template.modules.users.entity.UserStatus;
+import com.autumnus.spring_boot_starter_template.modules.users.entity.RoleName;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -25,8 +24,8 @@ public interface UserApi {
     @GetMapping
     ApiResponse<?> listUsers(
             @Parameter(hidden = true) @PageableDefault Pageable pageable,
-            @RequestParam(required = false) UserRole role,
-            @RequestParam(required = false) UserStatus status
+            @RequestParam(required = false) RoleName role,
+            @RequestParam(required = false) Boolean active
     );
 
     @Operation(summary = "Get user", description = "Retrieve details of a specific user by ID.")

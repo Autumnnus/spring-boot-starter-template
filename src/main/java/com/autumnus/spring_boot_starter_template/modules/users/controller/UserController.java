@@ -7,8 +7,7 @@ import com.autumnus.spring_boot_starter_template.common.idempotency.Idempotent;
 import com.autumnus.spring_boot_starter_template.modules.users.dto.UserCreateRequest;
 import com.autumnus.spring_boot_starter_template.modules.users.dto.UserResponse;
 import com.autumnus.spring_boot_starter_template.modules.users.dto.UserUpdateRequest;
-import com.autumnus.spring_boot_starter_template.modules.users.entity.UserRole;
-import com.autumnus.spring_boot_starter_template.modules.users.entity.UserStatus;
+import com.autumnus.spring_boot_starter_template.modules.users.entity.RoleName;
 import com.autumnus.spring_boot_starter_template.modules.users.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -35,10 +34,10 @@ public class UserController implements UserApi {
     @Override
     public ApiResponse<?> listUsers(
             @PageableDefault Pageable pageable,
-            @RequestParam(required = false) UserRole role,
-            @RequestParam(required = false) UserStatus status
+            @RequestParam(required = false) RoleName role,
+            @RequestParam(required = false) Boolean active
     ) {
-        final Page<UserResponse> result = userService.listUsers(pageable, role, status);
+        final Page<UserResponse> result = userService.listUsers(pageable, role, active);
         final PaginationMeta meta = PaginationMeta.builder()
                 .page(result.getNumber())
                 .size(result.getSize())

@@ -1,7 +1,6 @@
 package com.autumnus.spring_boot_starter_template.modules.users.dto;
 
-import com.autumnus.spring_boot_starter_template.modules.users.entity.UserRole;
-import com.autumnus.spring_boot_starter_template.modules.users.entity.UserStatus;
+import com.autumnus.spring_boot_starter_template.modules.users.entity.RoleName;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -13,11 +12,16 @@ import java.util.UUID;
 @Builder
 public class UserResponse {
 
-    private final UUID id;
+    private final UUID uuid;
     private final String email;
-    private final String displayName;
-    private final UserStatus status;
-    private final Set<UserRole> roles;
+    private final String username;
+    private final boolean active;
+    private final boolean emailVerified;
+    private final Set<RoleName> roles;
+    private final Instant lastLoginAt;
+    private final Instant passwordChangedAt;
+    private final Integer failedLoginAttempts;
+    private final Instant lockedUntil;
     private final Instant createdAt;
     private final Instant updatedAt;
 }

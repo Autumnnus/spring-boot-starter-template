@@ -42,10 +42,14 @@ application:
   security:
     jwt-secret: change-me-change-me-change-me-change-me
     access-token-ttl: PT15M
+    refresh-token-ttl: P7D
+    email-verification-token-ttl: PT24H
+    password-reset-token-ttl: PT1H
     public-endpoints:
       - /actuator/**
       - /swagger-ui/**
       - /v3/api-docs/**
+      - /api/v1/auth/**
   rate-limit:
     capacity: 100
     refill-period: PT1M

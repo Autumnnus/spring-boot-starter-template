@@ -2,17 +2,13 @@ package com.autumnus.spring_boot_starter_template.common.idempotency;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.time.Instant;
-import java.util.HexFormat;
-import java.util.Optional;
-import java.util.stream.Stream;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -20,9 +16,14 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
-import org.springframework.data.domain.Pageable;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.time.Instant;
+import java.util.HexFormat;
+import java.util.Optional;
+import java.util.stream.Stream;
 
 @Aspect
 @Component
@@ -91,8 +92,8 @@ public class IdempotencyAspect {
                     + "#"
                     + signature.getMethod().getName()
                     + objectMapper.writeValueAsString(Stream.of(joinPoint.getArgs())
-                            .map(this::normalizeArgument)
-                            .toList());
+                    .map(this::normalizeArgument)
+                    .toList());
             final MessageDigest digest = MessageDigest.getInstance("SHA-256");
             return HexFormat.of().formatHex(digest.digest(payload.getBytes(StandardCharsets.UTF_8)));
         } catch (JsonProcessingException | NoSuchAlgorithmException ex) {
@@ -122,5 +123,6 @@ public class IdempotencyAspect {
         }
     }
 
-    private record PageableFingerprint(int page, int size, String sort) {}
+    private record PageableFingerprint(int page, int size, String sort) {
+    }
 }

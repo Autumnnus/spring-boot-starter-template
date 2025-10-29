@@ -1,9 +1,10 @@
 package com.autumnus.spring_boot_starter_template.common.exception;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import java.time.Instant;
 import lombok.Builder;
 import lombok.Getter;
+
+import java.time.Instant;
 
 @Getter
 @Builder
@@ -11,15 +12,6 @@ import lombok.Getter;
 public class ApiError {
 
     private final ErrorDetail error;
-
-    @Getter
-    @Builder
-    public static class ErrorDetail {
-        private final String code;
-        private final String message;
-        private final String traceId;
-        private final Instant timestamp;
-    }
 
     public static ApiError of(String code, String message, String traceId) {
         return ApiError.builder()
@@ -30,5 +22,14 @@ public class ApiError {
                         .timestamp(Instant.now())
                         .build())
                 .build();
+    }
+
+    @Getter
+    @Builder
+    public static class ErrorDetail {
+        private final String code;
+        private final String message;
+        private final String traceId;
+        private final Instant timestamp;
     }
 }
