@@ -28,6 +28,8 @@ spring:
     redis:
       host: localhost
       port: 6379
+  elasticsearch:
+    uris: localhost:9200
   jackson:
     serialization:
       write-dates-as-timestamps: false
@@ -35,6 +37,15 @@ spring:
 logging:
   pattern:
     level: "%5p [trace=%X{traceId}]"
+  audit:
+    enabled: true
+    async: true
+    retention-days: 365
+  application:
+    enabled: true
+    elasticsearch:
+      index-pattern: "application-logs-{yyyy.MM}"
+      retention-days: 90
 
 management:
   endpoints:

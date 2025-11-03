@@ -1,6 +1,10 @@
 package com.autumnus.spring_boot_starter_template.modules.auth.service;
 
 import com.autumnus.spring_boot_starter_template.common.config.SecurityProperties;
+import com.autumnus.spring_boot_starter_template.common.logging.annotation.Auditable;
+import com.autumnus.spring_boot_starter_template.common.logging.annotation.NoLog;
+import com.autumnus.spring_boot_starter_template.common.logging.enums.AuditAction;
+import com.autumnus.spring_boot_starter_template.common.logging.enums.EntityType;
 import com.autumnus.spring_boot_starter_template.common.security.JwtTokenProvider;
 import com.autumnus.spring_boot_starter_template.common.security.UnauthorizedException;
 import com.autumnus.spring_boot_starter_template.modules.auth.dto.*;
@@ -78,6 +82,11 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Auditable(
+        entityType = EntityType.USER,
+        action = AuditAction.LOGIN,
+        entityIdExpression = "#request.email()"
+    )
     public TokenResponse login(LoginRequest request) {
         final User user = userService.findEntityByEmail(request.email())
                 .orElseThrow(() -> new UnauthorizedException("Invalid credentials"));
@@ -123,6 +132,11 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Auditable(
+        entityType = EntityType.USER,
+        action = AuditAction.LOGOUT,
+        entityIdExpression = "'current'"
+    )
     public void logout(RefreshTokenRequest request) {
         tokenService.revokeToken(request.refreshToken());
     }
@@ -157,6 +171,12 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @NoLog
+    @Auditable(
+        entityType = EntityType.USER,
+        action = AuditAction.PASSWORD_RESET,
+        entityIdExpression = "'token-based'"
+    )
     public void resetPassword(ResetPasswordRequest request) {
         final PasswordResetToken token = passwordResetTokenRepository.findByToken(request.token())
                 .orElseThrow(() -> new TokenValidationException("PASSWORD_TOKEN_NOT_FOUND", "Password reset token not found"));
@@ -177,6 +197,12 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @NoLog
+    @Auditable(
+        entityType = EntityType.USER,
+        action = AuditAction.PASSWORD_CHANGE,
+        entityIdExpression = "#userId.toString()"
+    )
     public void changePassword(Long userId, ChangePasswordRequest request) {
         final User user = userService.findEntityById(userId);
         if (!passwordEncoder.matches(request.oldPassword(), user.getPasswordHash())) {

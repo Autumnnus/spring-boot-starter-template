@@ -1,6 +1,9 @@
 package com.autumnus.spring_boot_starter_template.modules.users.service;
 
 import com.autumnus.spring_boot_starter_template.common.exception.ResourceNotFoundException;
+import com.autumnus.spring_boot_starter_template.common.logging.annotation.Auditable;
+import com.autumnus.spring_boot_starter_template.common.logging.enums.AuditAction;
+import com.autumnus.spring_boot_starter_template.common.logging.enums.EntityType;
 import com.autumnus.spring_boot_starter_template.modules.users.dto.UpdateProfileRequest;
 import com.autumnus.spring_boot_starter_template.modules.users.dto.UserCreateRequest;
 import com.autumnus.spring_boot_starter_template.modules.users.dto.UserResponse;
@@ -69,6 +72,11 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Auditable(
+        entityType = EntityType.USER,
+        action = AuditAction.CREATE,
+        entityIdExpression = "#result.id().toString()"
+    )
     public UserResponse createUser(UserCreateRequest request) {
         validateEmailUniqueness(request.email(), null);
         validateUsernameUniqueness(request.username(), null);
@@ -84,6 +92,12 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Auditable(
+        entityType = EntityType.USER,
+        action = AuditAction.UPDATE,
+        entityIdExpression = "#uuid.toString()",
+        captureOldValue = true
+    )
     public UserResponse updateUser(UUID uuid, UserUpdateRequest request) {
         final User user = userRepository.findByUuid(uuid)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
@@ -102,6 +116,12 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Auditable(
+        entityType = EntityType.USER,
+        action = AuditAction.DELETE,
+        entityIdExpression = "#uuid.toString()",
+        captureOldValue = true
+    )
     public void deleteUser(UUID uuid) {
         final User user = userRepository.findByUuid(uuid)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
