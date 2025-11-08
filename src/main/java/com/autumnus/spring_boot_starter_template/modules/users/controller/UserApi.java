@@ -61,13 +61,17 @@ public interface UserApi {
     @PostMapping(value = "/{id}/profile-photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     ApiResponse<UserResponse> uploadProfilePhoto(
             @PathVariable UUID id,
-            @RequestBody(content = @Content(mediaType = MediaType.MULTIPART_FORM_DATA_VALUE,
-                    schema = @Schema(type = "object", requiredProperties = {"file"},
-                            properties = {
-                                    @SchemaProperty(name = "file", schema = @Schema(type = "string", format = "binary"))
-                            })))
+            @Parameter(
+                    description = "Profile image file",
+                    required = true,
+                    content = @Content(
+                            mediaType = MediaType.MULTIPART_FORM_DATA_VALUE,
+                            schema = @Schema(type = "string", format = "binary")
+                    )
+            )
             @RequestPart("file") MultipartFile file
     );
+
 
     @Operation(summary = "Delete profile photo", description = "Remove the profile photo for the given user.")
     @DeleteMapping("/{id}/profile-photo")

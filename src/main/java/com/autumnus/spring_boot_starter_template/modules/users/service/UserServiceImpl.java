@@ -82,9 +82,9 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     public UserResponse getUser(UUID uuid) {
-        if (command == null || command.content() == null || command.content().length == 0) {
-            throw new MediaValidationException("Profile photo file is required");
-        }
+//        if (command == null || command.content() == null || command.content().length == 0) {
+//            throw new MediaValidationException("Profile photo file is required");
+//        }
         final User user = userRepository.findByUuid(uuid)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         return userMapper.toResponse(user, userMapper.extractRoleNames(user));
