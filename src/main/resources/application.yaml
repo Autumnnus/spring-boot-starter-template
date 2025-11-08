@@ -72,3 +72,12 @@ application:
   rate-limit:
     capacity: 100
     refill-period: PT1M
+  storage:
+    s3:
+      bucket: your-bucket-name
+      region: eu-central-1
+      # access-key: your-access-key
+      # secret-key: your-secret-key
+      # endpoint: http://localhost:4566
+      path-style-access: false
+      # public-base-url: https://cdn.example.com

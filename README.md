@@ -14,6 +14,7 @@ This project provides an opinionated Spring Boot starter template that implement
 - **OpenAPI 3 documentation** powered by Springdoc at `/swagger-ui/index.html`.
 - **ModelMapper integration** for DTO ↔ entity transformations.
 - **Ready-to-use testing profile** backed by an in-memory H2 database.
+- **Centralised media storage** on Amazon S3 with automatic image variants and manifest metadata.
 ---
 
 ## 🌐 Geliştirici Servisleri
@@ -82,10 +83,61 @@ Configuration is managed through `application.yaml` and can be overridden via en
 | `application.security.public-endpoints` | Comma-separated list of patterns that bypass authentication. |
 | `application.rate-limit.capacity` | Maximum number of requests permitted per refill period. |
 | `application.rate-limit.refill-period` | ISO-8601 duration describing the bucket refill cadence. |
+| `application.storage.s3.bucket` | Target S3 bucket that will store static assets. |
+| `application.storage.s3.region` | AWS region of the bucket (e.g. `eu-central-1`). |
+| `application.storage.s3.access-key` / `secret-key` | Optional explicit credentials; falls back to default provider chain if omitted. |
+| `application.storage.s3.endpoint` | Optional custom endpoint (e.g. Localstack). |
+| `application.storage.s3.path-style-access` | Enable when interacting with Localstack/minio style endpoints. |
+| `application.storage.s3.public-base-url` | Optional CDN/public URL prefix used when building asset links. |
 | `spring.datasource.*` | Database connectivity settings (PostgreSQL by default). |
 | `spring.data.redis.*` | Redis connection info for caching / distributed tokens (optional). |
 
 > A dedicated `application-test.yaml` configures an in-memory H2 database and a deterministic JWT secret for test runs.
+
+## 📁 Media Storage
+
+Static assets (images, audio, video, documents) are uploaded to Amazon S3 through the `MediaStorageService`. Files are organised with the following layout:
+
+```
+media/{kind}/{purpose}/{yyyy}/{mm}/{dd}/{sha12}-{uuid}/
+  original.{ext}
+  manifest.json
+  variants/
+    web.{ext}
+    mobile.{ext}
+    thumb.{ext}
+```
+
+- `kind` reflects the media category (`image`, `video`, `audio`, `document`).
+- `purpose` is a lowercase slug (e.g. `avatar`, `cover`, `post`).
+- `sha12` is derived from the original content hash to improve deduplication, followed by a random UUID.
+- `manifest.json` captures the full metadata of the original asset and every generated variant.
+
+### Image Variants
+
+Images (`image/jpeg`, `image/png`) are validated to be ≤ 10 MB and automatically produce:
+
+| Variant | Max Dimensions | Suggested Usage |
+| --- | --- | --- |
+| `original` | Original resolution | Archival/original downloads |
+| `web` | 1920×1080 | Desktop web experiences |
+| `mobile` | 1080×1080 | Handset/tablet friendly previews |
+| `thumb` | 320×320 | Avatars, list thumbnails |
+
+PDF documents are limited to 25 MB. Other media kinds can be extended with additional validation rules as needed.
+
+To upload multiple images in a single call, use the `MediaStorageService#storeAll` API which enforces a batch size of 1–100 files and applies the same validation/variant pipeline to each item.
+
+### User Profile Photos
+
+The `users` module stores the media manifest JSON directly on the `users.profile_photo_manifest` column. The `GET /api/v1/users/{id}` response now includes a `profilePhoto` object exposing public URLs for each variant.
+
+Swagger exposes two new endpoints:
+
+- `POST /api/v1/users/{id}/profile-photo` (multipart form upload with `file` part) — creates or replaces the avatar.
+- `DELETE /api/v1/users/{id}/profile-photo` — removes the avatar and deletes the backing S3 objects.
+
+Grant an access token, navigate to Swagger UI, and execute the upload endpoint by choosing an image file (PNG/JPEG ≤ 10 MB). The manifest is updated and older assets are cleaned up automatically.
 
 ## 🔐 Security Model
 

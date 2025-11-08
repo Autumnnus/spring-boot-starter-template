@@ -4,6 +4,14 @@ import com.autumnus.spring_boot_starter_template.common.exception.ResourceNotFou
 import com.autumnus.spring_boot_starter_template.common.logging.annotation.AuditAction;
 import com.autumnus.spring_boot_starter_template.common.logging.annotation.Auditable;
 import com.autumnus.spring_boot_starter_template.common.logging.context.AuditContextHolder;
+import com.autumnus.spring_boot_starter_template.common.storage.dto.MediaAsset;
+import com.autumnus.spring_boot_starter_template.common.storage.exception.MediaStorageException;
+import com.autumnus.spring_boot_starter_template.common.storage.exception.MediaValidationException;
+import com.autumnus.spring_boot_starter_template.common.storage.model.MediaKind;
+import com.autumnus.spring_boot_starter_template.common.storage.model.MediaManifest;
+import com.autumnus.spring_boot_starter_template.common.storage.model.MediaUpload;
+import com.autumnus.spring_boot_starter_template.common.storage.service.MediaStorageService;
+import com.autumnus.spring_boot_starter_template.modules.users.dto.ProfilePhotoUploadCommand;
 import com.autumnus.spring_boot_starter_template.modules.users.dto.UpdateProfileRequest;
 import com.autumnus.spring_boot_starter_template.modules.users.dto.UserCreateRequest;
 import com.autumnus.spring_boot_starter_template.modules.users.dto.UserResponse;
@@ -16,6 +24,8 @@ import com.autumnus.spring_boot_starter_template.modules.users.mapper.UserMapper
 import com.autumnus.spring_boot_starter_template.modules.users.repository.RoleRepository;
 import com.autumnus.spring_boot_starter_template.modules.users.repository.UserRepository;
 import com.autumnus.spring_boot_starter_template.modules.users.repository.UserSpecifications;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -41,17 +51,23 @@ public class UserServiceImpl implements UserService {
     private final RoleRepository roleRepository;
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
+    private final MediaStorageService mediaStorageService;
+    private final ObjectMapper objectMapper;
 
     public UserServiceImpl(
             UserRepository userRepository,
             RoleRepository roleRepository,
             UserMapper userMapper,
-            PasswordEncoder passwordEncoder
+            PasswordEncoder passwordEncoder,
+            MediaStorageService mediaStorageService,
+            ObjectMapper objectMapper
     ) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.userMapper = userMapper;
         this.passwordEncoder = passwordEncoder;
+        this.mediaStorageService = mediaStorageService;
+        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -66,6 +82,9 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     public UserResponse getUser(UUID uuid) {
+        if (command == null || command.content() == null || command.content().length == 0) {
+            throw new MediaValidationException("Profile photo file is required");
+        }
         final User user = userRepository.findByUuid(uuid)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         return userMapper.toResponse(user, userMapper.extractRoleNames(user));
@@ -184,6 +203,51 @@ public class UserServiceImpl implements UserService {
             action = AuditAction.UPDATE,
             captureOldValue = true,
             captureNewValue = true,
+            entityIdExpression = "#uuid"
+    )
+    public UserResponse updateProfilePhoto(UUID uuid, ProfilePhotoUploadCommand command) {
+        final User user = userRepository.findByUuid(uuid)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        AuditContextHolder.setEntityId(user.getUuid().toString());
+        AuditContextHolder.setOldValue(userMapper.toResponse(user, userMapper.extractRoleNames(user)));
+        final MediaManifest existingManifest = parseManifest(user.getProfilePhotoManifest());
+        final MediaUpload upload = new MediaUpload(command.originalFilename(), command.contentType(), command.content());
+        final MediaAsset asset = mediaStorageService.replace(existingManifest, MediaKind.IMAGE, "avatar", upload);
+        user.setProfilePhotoManifest(writeManifest(asset.manifest()));
+        final User saved = userRepository.save(user);
+        AuditContextHolder.setNewValue(userMapper.toResponse(saved, userMapper.extractRoleNames(saved)));
+        return userMapper.toResponse(saved, userMapper.extractRoleNames(saved));
+    }
+
+    @Override
+    @Auditable(
+            entityType = "USER",
+            action = AuditAction.UPDATE,
+            captureOldValue = true,
+            captureNewValue = true,
+            entityIdExpression = "#uuid"
+    )
+    public void removeProfilePhoto(UUID uuid) {
+        final User user = userRepository.findByUuid(uuid)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        AuditContextHolder.setEntityId(user.getUuid().toString());
+        if (user.getProfilePhotoManifest() == null) {
+            return;
+        }
+        AuditContextHolder.setOldValue(userMapper.toResponse(user, userMapper.extractRoleNames(user)));
+        final MediaManifest manifest = parseManifest(user.getProfilePhotoManifest());
+        mediaStorageService.delete(manifest);
+        user.setProfilePhotoManifest(null);
+        final User saved = userRepository.save(user);
+        AuditContextHolder.setNewValue(userMapper.toResponse(saved, userMapper.extractRoleNames(saved)));
+    }
+
+    @Override
+    @Auditable(
+            entityType = "USER",
+            action = AuditAction.UPDATE,
+            captureOldValue = true,
+            captureNewValue = true,
             entityIdExpression = "#userId"
     )
     public void activateUser(Long userId) {
@@ -239,6 +303,25 @@ public class UserServiceImpl implements UserService {
         user.setFailedLoginAttempts(0);
         user.setLockedUntil(null);
         userRepository.save(user);
+    }
+
+    private MediaManifest parseManifest(String manifestJson) {
+        if (manifestJson == null) {
+            return null;
+        }
+        try {
+            return objectMapper.readValue(manifestJson, MediaManifest.class);
+        } catch (JsonProcessingException e) {
+            throw new MediaStorageException("Failed to parse stored media manifest", e);
+        }
+    }
+
+    private String writeManifest(MediaManifest manifest) {
+        try {
+            return objectMapper.writeValueAsString(manifest);
+        } catch (JsonProcessingException e) {
+            throw new MediaStorageException("Failed to persist media manifest", e);
+        }
     }
 
     private void assignRoles(User user, Set<RoleName> roles, User assignedBy) {

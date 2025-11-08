@@ -1,6 +1,7 @@
 package com.autumnus.spring_boot_starter_template.common.exception;
 
 import com.autumnus.spring_boot_starter_template.common.context.RequestContextHolder;
+import com.autumnus.spring_boot_starter_template.common.storage.exception.MediaStorageException;
 import com.autumnus.spring_boot_starter_template.common.idempotency.IdempotencyKeyConflictException;
 import com.autumnus.spring_boot_starter_template.common.rate_limiting.RateLimitExceededException;
 import com.autumnus.spring_boot_starter_template.common.security.UnauthorizedException;
@@ -33,6 +34,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(UnauthorizedException.class)
     public ResponseEntity<ApiError> handleUnauthorized(UnauthorizedException ex) {
         return buildResponse(ex.getCode(), ex.getMessage(), HttpStatus.UNAUTHORIZED);
+    }
+
+    @ExceptionHandler(MediaStorageException.class)
+    public ResponseEntity<ApiError> handleMediaStorage(MediaStorageException ex) {
+        return buildResponse(ex.getCode(), ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     @ExceptionHandler(AccessDeniedException.class)

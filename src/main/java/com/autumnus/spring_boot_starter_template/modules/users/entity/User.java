@@ -50,4 +50,8 @@ public class User extends BaseEntity {
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<RefreshToken> refreshTokens = new HashSet<>();
+
+    @Lob
+    @Column(name = "profile_photo_manifest")
+    private String profilePhotoManifest;
 }

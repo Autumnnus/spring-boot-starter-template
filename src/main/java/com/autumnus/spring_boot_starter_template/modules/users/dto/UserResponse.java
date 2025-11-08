@@ -1,5 +1,6 @@
 package com.autumnus.spring_boot_starter_template.modules.users.dto;
 
+import com.autumnus.spring_boot_starter_template.common.storage.dto.MediaResourceResponse;
 import com.autumnus.spring_boot_starter_template.modules.users.entity.RoleName;
 import lombok.Builder;
 import lombok.Getter;
@@ -24,4 +25,5 @@ public class UserResponse {
     private final Instant lockedUntil;
     private final Instant createdAt;
     private final Instant updatedAt;
+    private final MediaResourceResponse profilePhoto;
 }
