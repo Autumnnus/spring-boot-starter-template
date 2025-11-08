@@ -38,49 +38,80 @@ services:
     volumes:
       - redis-insight:/data
 
+  setup:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.3
+    container_name: elastic-setup
+    environment:
+      - ELASTIC_PASSWORD=changeme
+      - KIBANA_PASSWORD=changeme
+    command: >
+      bash -c '
+        echo "Waiting for Elasticsearch..."
+        until curl -s -u elastic:changeme http://elasticsearch:9200/_cluster/health | grep -vq '"'"'status":"red"'"'"'; do sleep 5; done;
+        echo "Setting kibana_system password..."
+        curl -u elastic:changeme -X POST http://elasticsearch:9200/_security/user/kibana_system/_password -H "Content-Type: application/json" -d'"'"'{"password":"changeme"}'"'"'
+        echo "Passwords configured!"
+      '
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - elastic
+
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.15.3
     container_name: spring-boot-starter-elasticsearch
     environment:
+      - node.name=elasticsearch
+      - cluster.name=docker-cluster
       - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
       - xpack.security.enabled=true
+      - xpack.security.http.ssl.enabled=false
       - xpack.security.transport.ssl.enabled=false
-      - ELASTIC_USERNAME=elastic
       - ELASTIC_PASSWORD=changeme
-    ports:
-      - 9200:9200
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
     volumes:
       - esdata:/usr/share/elasticsearch/data
+    ports:
+      - 9200:9200
+      - 9300:9300
     networks:
       - elastic
     healthcheck:
-      test: ["CMD-SHELL", "curl -u elastic:changeme -fsS http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=1s"]
+      test: [ "CMD-SHELL", "curl -s -u elastic:changeme http://localhost:9200/_cluster/health | grep -vq '\"status\":\"red\"'" ]
       interval: 10s
-      timeout: 5s
-      retries: 20
+      timeout: 10s
+      retries: 120
 
   kibana:
     image: docker.elastic.co/kibana/kibana:8.15.3
     container_name: spring-boot-starter-kibana
     environment:
+      - SERVERNAME=kibana
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-      # 1) YA kullanıcı/şifre kullan:
       - ELASTICSEARCH_USERNAME=kibana_system
       - ELASTICSEARCH_PASSWORD=changeme
-      - ELASTICSEARCH_SERVICE_TOKEN=AAEAAWVsYXN0aWMva2liYW5hL2tpYmFuYS10b2tlbjpnSnRrSVVnLVFZU2szZEQ1ajF1X19B
+      - XPACK_SECURITY_ENABLED=true
+      - TELEMETRY_ENABLED=false
+    ports:
+      - 5601:5601
     depends_on:
       elasticsearch:
         condition: service_healthy
-    ports:
-      - 5601:5601
+      setup:
+        condition: service_completed_successfully
     networks:
       - elastic
-
     healthcheck:
-      test: [ "CMD", "curl", "-fsS", "http://localhost:5601/api/status" ]
+      test: [ "CMD-SHELL", "curl -s -I http://localhost:5601 | grep -q 'HTTP/1.1'" ]
       interval: 10s
-      timeout: 5s
-      retries: 30
+      timeout: 10s
+      retries: 120
 
   apm-server:
     image: docker.elastic.co/apm/apm-server:8.15.3
@@ -94,25 +125,25 @@ services:
         -E setup.template.settings.index.number_of_replicas=0
         -E apm-server.kibana.enabled=true
         -E apm-server.kibana.host=kibana:5601
+        -E apm-server.kibana.username=elastic
+        -E apm-server.kibana.password=changeme
         -E output.elasticsearch.hosts=["elasticsearch:9200"]
-#    healthcheck:
-#      interval: 10s
-#      retries: 12
-#      test: curl --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:8200/
-#    depends_on:
-#      elasticsearch:
-#        condition: service_healthy
-#      kibana:
-#        condition: service_healthy
-    environment:
-      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-      - ELASTICSEARCH_USERNAME=elastic
-      - ELASTIC_PASSWORD=changeme
-      - kibana.host=http://kibana:5601
+        -E output.elasticsearch.username=elastic
+        -E output.elasticsearch.password=changeme
     ports:
       - 8200:8200
     networks:
       - elastic
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      kibana:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "curl --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:8200/" ]
+      interval: 10s
+      timeout: 10s
+      retries: 120
 
 volumes:
   pgdata:
