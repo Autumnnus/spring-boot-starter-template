@@ -3,28 +3,28 @@ services:
     image: postgres:16-trixie
     container_name: spring-boot-starter-postgres
     environment:
-      - 'POSTGRES_DB=postgres'
-      - 'POSTGRES_USER=spring-boot-starter-user'
-      - 'POSTGRES_PASSWORD=spring-boot-starter-password'
+      - "POSTGRES_DB=postgres"
+      - "POSTGRES_USER=spring-boot-starter-user"
+      - "POSTGRES_PASSWORD=spring-boot-starter-password"
     ports:
       - "15432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U spring-boot-starter-user -d postgres" ]
+      test: ["CMD-SHELL", "pg_isready -U spring-boot-starter-user -d postgres"]
       interval: 5s
       timeout: 5s
       retries: 10
 
   redis:
-    image: 'redis:latest'
+    image: "redis:latest"
     container_name: spring-boot-starter-redis
     ports:
       - "6379"
     volumes:
       - redisdata:/data
     healthcheck:
-      test: [ "CMD-SHELL", "redis-cli ping | grep PONG" ]
+      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -83,7 +83,11 @@ services:
     networks:
       - elastic
     healthcheck:
-      test: [ "CMD-SHELL", "curl -s -u elastic:changeme http://localhost:9200/_cluster/health | grep -vq '\"status\":\"red\"'" ]
+      test:
+        [
+          "CMD-SHELL",
+          'curl -s -u elastic:changeme http://localhost:9200/_cluster/health | grep -vq ''"status":"red"''',
+        ]
       interval: 10s
       timeout: 10s
       retries: 120
@@ -108,7 +112,8 @@ services:
     networks:
       - elastic
     healthcheck:
-      test: [ "CMD-SHELL", "curl -s -I http://localhost:5601 | grep -q 'HTTP/1.1'" ]
+      test:
+        ["CMD-SHELL", "curl -s -I http://localhost:5601 | grep -q 'HTTP/1.1'"]
       interval: 10s
       timeout: 10s
       retries: 120
@@ -116,8 +121,8 @@ services:
   apm-server:
     image: docker.elastic.co/apm/apm-server:8.15.3
     container_name: spring-boot-starter-apm-server
-    cap_add: [ "CHOWN", "DAC_OVERRIDE", "SETGID", "SETUID" ]
-    cap_drop: [ "ALL" ]
+    cap_add: ["CHOWN", "DAC_OVERRIDE", "SETGID", "SETUID"]
+    cap_drop: ["ALL"]
     command: >
       apm-server -e
         -E apm-server.rum.enabled=true
@@ -139,11 +144,11 @@ services:
         condition: service_healthy
       kibana:
         condition: service_healthy
-    healthcheck:
-      test: [ "CMD-SHELL", "curl --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:8200/" ]
-      interval: 10s
-      timeout: 10s
-      retries: 120
+    # healthcheck:
+    #   test: [ "CMD-SHELL", "curl --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:8200/" ]
+    #   interval: 10s
+    #   timeout: 10s
+    #   retries: 120
 
 volumes:
   pgdata:
