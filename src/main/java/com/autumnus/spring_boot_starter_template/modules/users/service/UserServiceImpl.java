@@ -1,6 +1,9 @@
 package com.autumnus.spring_boot_starter_template.modules.users.service;
 
 import com.autumnus.spring_boot_starter_template.common.exception.ResourceNotFoundException;
+import com.autumnus.spring_boot_starter_template.common.logging.annotation.AuditAction;
+import com.autumnus.spring_boot_starter_template.common.logging.annotation.Auditable;
+import com.autumnus.spring_boot_starter_template.common.logging.context.AuditContextHolder;
 import com.autumnus.spring_boot_starter_template.modules.users.dto.UpdateProfileRequest;
 import com.autumnus.spring_boot_starter_template.modules.users.dto.UserCreateRequest;
 import com.autumnus.spring_boot_starter_template.modules.users.dto.UserResponse;
@@ -69,6 +72,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Auditable(entityType = "USER", action = AuditAction.CREATE, captureNewValue = true)
     public UserResponse createUser(UserCreateRequest request) {
         validateEmailUniqueness(request.email(), null);
         validateUsernameUniqueness(request.username(), null);
@@ -80,13 +84,24 @@ public class UserServiceImpl implements UserService {
         user.setPasswordChangedAt(Instant.now());
         assignRoles(user, request.roles(), null);
         final User saved = userRepository.save(user);
+        AuditContextHolder.setEntityId(saved.getUuid().toString());
+        AuditContextHolder.setNewValue(userMapper.toResponse(saved, userMapper.extractRoleNames(saved)));
         return userMapper.toResponse(saved, userMapper.extractRoleNames(saved));
     }
 
     @Override
+    @Auditable(
+            entityType = "USER",
+            action = AuditAction.UPDATE,
+            captureOldValue = true,
+            captureNewValue = true,
+            entityIdExpression = "#uuid"
+    )
     public UserResponse updateUser(UUID uuid, UserUpdateRequest request) {
         final User user = userRepository.findByUuid(uuid)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        AuditContextHolder.setEntityId(user.getUuid().toString());
+        AuditContextHolder.setOldValue(userMapper.toResponse(user, userMapper.extractRoleNames(user)));
         if (request.email() != null && !Objects.equals(request.email(), user.getEmail())) {
             validateEmailUniqueness(request.email(), user.getId());
         }
@@ -98,13 +113,22 @@ public class UserServiceImpl implements UserService {
             assignRoles(user, request.roles(), null);
         }
         final User saved = userRepository.save(user);
+        AuditContextHolder.setNewValue(userMapper.toResponse(saved, userMapper.extractRoleNames(saved)));
         return userMapper.toResponse(saved, userMapper.extractRoleNames(saved));
     }
 
     @Override
+    @Auditable(
+            entityType = "USER",
+            action = AuditAction.DELETE,
+            captureOldValue = true,
+            entityIdExpression = "#uuid"
+    )
     public void deleteUser(UUID uuid) {
         final User user = userRepository.findByUuid(uuid)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        AuditContextHolder.setEntityId(user.getUuid().toString());
+        AuditContextHolder.setOldValue(userMapper.toResponse(user, userMapper.extractRoleNames(user)));
         user.markDeleted();
         user.setActive(false);
         userRepository.save(user);
@@ -130,8 +154,17 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Auditable(
+            entityType = "USER",
+            action = AuditAction.UPDATE,
+            captureOldValue = true,
+            captureNewValue = true,
+            entityIdExpression = "#userId"
+    )
     public UserResponse updateProfile(Long userId, UpdateProfileRequest request) {
         final User user = findEntityById(userId);
+        AuditContextHolder.setEntityId(user.getUuid().toString());
+        AuditContextHolder.setOldValue(userMapper.toResponse(user, userMapper.extractRoleNames(user)));
         if (request.email() != null && !Objects.equals(request.email(), user.getEmail())) {
             validateEmailUniqueness(request.email(), user.getId());
             user.setEmail(request.email());
@@ -141,23 +174,44 @@ public class UserServiceImpl implements UserService {
             user.setUsername(request.username());
         }
         final User saved = userRepository.save(user);
+        AuditContextHolder.setNewValue(userMapper.toResponse(saved, userMapper.extractRoleNames(saved)));
         return userMapper.toResponse(saved, userMapper.extractRoleNames(saved));
     }
 
     @Override
+    @Auditable(
+            entityType = "USER",
+            action = AuditAction.UPDATE,
+            captureOldValue = true,
+            captureNewValue = true,
+            entityIdExpression = "#userId"
+    )
     public void activateUser(Long userId) {
         final User user = findEntityById(userId);
+        AuditContextHolder.setEntityId(user.getUuid().toString());
+        AuditContextHolder.setOldValue(userMapper.toResponse(user, userMapper.extractRoleNames(user)));
         user.setActive(true);
         user.setLockedUntil(null);
         user.setFailedLoginAttempts(0);
         userRepository.save(user);
+        AuditContextHolder.setNewValue(userMapper.toResponse(user, userMapper.extractRoleNames(user)));
     }
 
     @Override
+    @Auditable(
+            entityType = "USER",
+            action = AuditAction.UPDATE,
+            captureOldValue = true,
+            captureNewValue = true,
+            entityIdExpression = "#userId"
+    )
     public void deactivateUser(Long userId) {
         final User user = findEntityById(userId);
+        AuditContextHolder.setEntityId(user.getUuid().toString());
+        AuditContextHolder.setOldValue(userMapper.toResponse(user, userMapper.extractRoleNames(user)));
         user.setActive(false);
         userRepository.save(user);
+        AuditContextHolder.setNewValue(userMapper.toResponse(user, userMapper.extractRoleNames(user)));
     }
 
     @Override
