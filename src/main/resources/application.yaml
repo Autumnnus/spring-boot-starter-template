@@ -46,6 +46,7 @@ logging:
     retention-days: 365
   application:
     enabled: true
+    async: true
     elasticsearch:
       index-pattern: "application-logs-{yyyy.MM}"
       retention-days: 90

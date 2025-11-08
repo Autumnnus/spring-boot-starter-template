@@ -1,6 +1,10 @@
 package com.autumnus.spring_boot_starter_template.modules.auth.service;
 
 import com.autumnus.spring_boot_starter_template.common.config.SecurityProperties;
+import com.autumnus.spring_boot_starter_template.common.logging.annotation.AuditAction;
+import com.autumnus.spring_boot_starter_template.common.logging.annotation.Auditable;
+import com.autumnus.spring_boot_starter_template.common.logging.annotation.NoLog;
+import com.autumnus.spring_boot_starter_template.common.logging.context.AuditContextHolder;
 import com.autumnus.spring_boot_starter_template.common.security.JwtTokenProvider;
 import com.autumnus.spring_boot_starter_template.common.security.UnauthorizedException;
 import com.autumnus.spring_boot_starter_template.modules.auth.dto.*;
@@ -78,9 +82,11 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Auditable(entityType = "USER", action = AuditAction.LOGIN, entityIdExpression = "#request.email")
     public TokenResponse login(LoginRequest request) {
         final User user = userService.findEntityByEmail(request.email())
                 .orElseThrow(() -> new UnauthorizedException("Invalid credentials"));
+        AuditContextHolder.setEntityId(user.getUuid().toString());
         userService.checkAccountLocked(user);
         try {
             authenticationManager.authenticate(
@@ -177,6 +183,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @NoLog
     public void changePassword(Long userId, ChangePasswordRequest request) {
         final User user = userService.findEntityById(userId);
         if (!passwordEncoder.matches(request.oldPassword(), user.getPasswordHash())) {
