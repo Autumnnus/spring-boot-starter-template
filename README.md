@@ -9,6 +9,7 @@ This project provides an opinionated Spring Boot starter template that implement
 - **RBAC + ABAC**: Role checks are enforced via Spring Security annotations while resource ownership checks are delegated to dedicated guards.
 - **Idempotent write endpoints** using the `@Idempotent` annotation and the `idempotency_keys` table.
 - **Rate limiting** built on Bucket4j with user/IP/device granularity and configurable quotas.
+- **Comprehensive audit & logging** with PostgreSQL-backed audit trails and Elasticsearch-powered application logs, featuring AOP-based tracking of user actions and HTTP requests.
 - **Global error contract** that always returns a deterministic payload containing `code`, `message`, `traceId`, and `timestamp`.
 - **Trace propagation** via `X-Trace-Id` header coupled with MDC logging enrichment.
 - **OpenAPI 3 documentation** powered by Springdoc at `/swagger-ui/index.html`.
@@ -57,7 +58,7 @@ src/main/java/com/autumnus/spring_boot_starter_template
 │   ├── context/          # Request context holder utilities
 │   ├── exception/        # Error model and global exception handler
 │   ├── idempotency/      # @Idempotent aspect and persistence layer
-│   ├── logging/          # Trace id filter and MDC integration
+│   ├── logging/          # Audit & application logging with AOP aspects, filters, and services
 │   ├── persistence/      # Base JPA entities
 │   ├── rate_limiting/    # Bucket4j backed rate limiting filter/service
 │   └── security/         # JWT utilities, filter, and security helpers
@@ -82,8 +83,14 @@ Configuration is managed through `application.yaml` and can be overridden via en
 | `application.security.public-endpoints` | Comma-separated list of patterns that bypass authentication. |
 | `application.rate-limit.capacity` | Maximum number of requests permitted per refill period. |
 | `application.rate-limit.refill-period` | ISO-8601 duration describing the bucket refill cadence. |
+| `logging.audit.enabled` | Enable/disable audit logging (default: true). |
+| `logging.audit.async` | Process audit logs asynchronously (default: true). |
+| `logging.audit.retention-days` | Number of days to retain audit logs (default: 365). |
+| `logging.application.enabled` | Enable/disable application logging to Elasticsearch (default: true). |
+| `logging.application.elasticsearch.retention-days` | Number of days to retain application logs (default: 90). |
 | `spring.datasource.*` | Database connectivity settings (PostgreSQL by default). |
 | `spring.data.redis.*` | Redis connection info for caching / distributed tokens (optional). |
+| `spring.elasticsearch.uris` | Elasticsearch connection URI for application logs (default: localhost:9200). |
 
 > A dedicated `application-test.yaml` configures an in-memory H2 database and a deterministic JWT secret for test runs.
 
@@ -112,6 +119,120 @@ Clients must provide a unique `Idempotency-Key` header per logical request. The 
 ## 🚦 Rate Limiting
 
 Bucket4j guards every request with a composite key built from user id, IP address, device id (`X-Device-Id` header), HTTP method, and request path. Exceeding the quota emits a `429 Too Many Requests` response with the standard error payload and a `Retry-After` header derived from configuration.
+
+## 📊 Audit & Logging
+
+The application implements a comprehensive dual-layer logging strategy:
+
+### Audit Logs (PostgreSQL)
+
+Audit logs track critical user actions and data changes with full traceability:
+
+- **Storage:** PostgreSQL `audit_logs` table with JSONB columns for old/new values
+- **What's tracked:**
+  - User CRUD operations (CREATE, UPDATE, DELETE)
+  - Authentication events (LOGIN, LOGOUT, LOGIN_FAILED)
+  - Password operations (PASSWORD_CHANGE, PASSWORD_RESET)
+  - Entity changes with before/after snapshots
+  - IP address, user agent, and request correlation ID
+- **Retention:** 365 days (configurable via `logging.audit.retention-days`)
+- **Performance:** Async processing to avoid blocking main request thread
+
+**Usage with `@Auditable` annotation:**
+
+```java
+@Auditable(
+    entityType = EntityType.USER,
+    action = AuditAction.UPDATE,
+    entityIdExpression = "#userId.toString()",
+    captureOldValue = true
+)
+public UserResponse updateUser(Long userId, UserUpdateRequest request) {
+    // Business logic
+}
+```
+
+**Exclude sensitive operations with `@NoLog`:**
+
+```java
+@NoLog
+@Auditable(
+    entityType = EntityType.USER,
+    action = AuditAction.PASSWORD_CHANGE,
+    entityIdExpression = "#userId.toString()"
+)
+public void changePassword(Long userId, ChangePasswordRequest request) {
+    // Password operations won't be logged in application logs
+}
+```
+
+### Application Logs (Elasticsearch)
+
+Application logs capture technical execution details and HTTP traffic:
+
+- **Storage:** Elasticsearch with dynamic index pattern `application-logs-{yyyy.MM}`
+- **What's tracked:**
+  - HTTP request/response (method, path, status, duration)
+  - Service method execution and performance metrics
+  - Exception details with full stack traces
+  - Request correlation via trace ID
+- **Retention:** 90 days (configurable via `logging.application.elasticsearch.retention-days`)
+- **Visualization:** View logs in Kibana at [http://localhost:5601](http://localhost:5601)
+
+**Automatic logging via AOP:**
+
+- All `@Service` methods are automatically logged with entry/exit and duration
+- All HTTP requests are logged via `LoggingFilter`
+- Exceptions are captured with full context
+
+**Query Examples:**
+
+```java
+// Get audit logs for a specific user
+auditLogService.getByUserId(userId, pageable);
+
+// Get audit logs for a specific entity
+auditLogService.getByEntity(EntityType.USER, entityId, pageable);
+
+// Get application logs by request ID
+applicationLogService.getByRequestId(traceId);
+
+// Get error logs within time range
+applicationLogService.getErrorLogs(startTime, endTime, pageable);
+```
+
+### Log Correlation
+
+Every request generates a unique trace ID that links audit logs, application logs, and HTTP logs:
+
+1. Client sends request (optionally with `X-Trace-Id` header)
+2. `TraceIdFilter` generates/extracts trace ID and adds to MDC
+3. All logs (audit, application, HTTP) share the same `requestId`/`traceId`
+4. Use trace ID to follow request across all log sources
+
+### Architecture Components
+
+```text
+common/logging/
+├── annotation/
+│   ├── Auditable.java          # Mark methods for audit logging
+│   └── NoLog.java              # Exclude from application logging
+├── aspect/
+│   ├── AuditLogAspect.java     # AOP interceptor for @Auditable
+│   └── ApplicationLogAspect.java # AOP interceptor for service methods
+├── filter/
+│   └── LoggingFilter.java      # HTTP request/response logging
+├── entity/
+│   └── AuditLog.java           # PostgreSQL entity
+├── document/
+│   └── ApplicationLog.java     # Elasticsearch document
+├── repository/
+│   ├── AuditLogRepository.java
+│   └── ApplicationLogRepository.java
+└── service/
+    ├── AuditLogService.java
+    └── ApplicationLogService.java
+```
 
 ## 📚 API Documentation
 
