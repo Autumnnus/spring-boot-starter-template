@@ -28,6 +28,11 @@ spring:
     redis:
       host: ${REDIS_HOST}
       port: ${REDIS_PORT}
+  rabbitmq:
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT}
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
   elasticsearch:
     uris: ${ELASTICSEARCH_HOSTS}
     username: ${ELASTICSEARCH_USERNAME}
@@ -80,3 +85,8 @@ application:
       endpoint: ${AWS_S3_ENDPOINT}
       path-style-access: false
       public-base-url: ${AWS_S3_PUBLIC_URL}
+  messaging:
+    notifications:
+      exchange: notifications.exchange
+      queue: notifications.queue
+      routing-key: notifications.routing-key

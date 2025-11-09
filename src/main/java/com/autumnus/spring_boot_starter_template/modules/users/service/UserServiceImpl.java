@@ -1,6 +1,8 @@
 package com.autumnus.spring_boot_starter_template.modules.users.service;
 
 import com.autumnus.spring_boot_starter_template.common.exception.ResourceNotFoundException;
+import com.autumnus.spring_boot_starter_template.common.messaging.NotificationProducer;
+import com.autumnus.spring_boot_starter_template.common.messaging.dto.NotificationMessage;
 import com.autumnus.spring_boot_starter_template.common.logging.annotation.AuditAction;
 import com.autumnus.spring_boot_starter_template.common.logging.annotation.Auditable;
 import com.autumnus.spring_boot_starter_template.common.logging.context.AuditContextHolder;
@@ -52,6 +54,7 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder passwordEncoder;
     private final MediaStorageService mediaStorageService;
     private final ObjectMapper objectMapper;
+    private final NotificationProducer notificationProducer;
 
     public UserServiceImpl(
             UserRepository userRepository,
@@ -59,7 +62,8 @@ public class UserServiceImpl implements UserService {
             UserMapper userMapper,
             PasswordEncoder passwordEncoder,
             MediaStorageService mediaStorageService,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            NotificationProducer notificationProducer
     ) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
@@ -67,6 +71,7 @@ public class UserServiceImpl implements UserService {
         this.passwordEncoder = passwordEncoder;
         this.mediaStorageService = mediaStorageService;
         this.objectMapper = objectMapper;
+        this.notificationProducer = notificationProducer;
     }
 
     @Override
@@ -98,6 +103,12 @@ public class UserServiceImpl implements UserService {
         user.setPasswordChangedAt(Instant.now());
         assignRoles(user, request.roles(), null);
         final User saved = userRepository.save(user);
+        notificationProducer.sendNotification(NotificationMessage.builder()
+                .userId(saved.getId())
+                .title("Welcome to the platform")
+                .message("Your account has been created successfully.")
+                .type("SUCCESS")
+                .build());
         AuditContextHolder.setEntityId(saved.getId().toString());
         AuditContextHolder.setNewValue(userMapper.toResponse(saved, userMapper.extractRoleNames(saved)));
         return userMapper.toResponse(saved, userMapper.extractRoleNames(saved));

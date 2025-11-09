@@ -38,6 +38,63 @@ services:
     volumes:
       - redis-insight:/data
 
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: spring-boot-starter-rabbitmq
+    environment:
+      - "RABBITMQ_DEFAULT_USER=${RABBITMQ_USERNAME}"
+      - "RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD}"
+    ports:
+      - "${RABBITMQ_PORT}:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
+  postgres-notifications:
+    image: postgres:16-trixie
+    container_name: notification-service-postgres
+    environment:
+      - "POSTGRES_DB=notifications_db"
+      - "POSTGRES_USER=${NOTIFICATIONS_POSTGRES_USER}"
+      - "POSTGRES_PASSWORD=${NOTIFICATIONS_POSTGRES_PASSWORD}"
+    ports:
+      - "5433:5432"
+    volumes:
+      - notifications-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${NOTIFICATIONS_POSTGRES_USER} -d notifications_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  notification-service:
+    build:
+      context: ./notification-service
+      dockerfile: Dockerfile
+    container_name: notification-service
+    environment:
+      - "SPRING_PROFILES_ACTIVE=dev"
+      - "SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-notifications:5432/notifications_db"
+      - "SPRING_DATASOURCE_USERNAME=${NOTIFICATIONS_POSTGRES_USER}"
+      - "SPRING_DATASOURCE_PASSWORD=${NOTIFICATIONS_POSTGRES_PASSWORD}"
+      - "SPRING_RABBITMQ_HOST=rabbitmq"
+      - "SPRING_RABBITMQ_PORT=5672"
+      - "SPRING_RABBITMQ_USERNAME=${RABBITMQ_USERNAME}"
+      - "SPRING_RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}"
+      - "APPLICATION_MESSAGING_NOTIFICATIONS_EXCHANGE=notifications.exchange"
+      - "APPLICATION_MESSAGING_NOTIFICATIONS_QUEUE=notifications.queue"
+      - "APPLICATION_MESSAGING_NOTIFICATIONS_ROUTING_KEY=notifications.routing-key"
+    ports:
+      - "8081:8081"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres-notifications:
+        condition: service_healthy
+
   setup:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.15.3
     container_name: elastic-setup
@@ -155,6 +212,7 @@ volumes:
   redisdata:
   redis-insight:
   esdata:
+  notifications-pgdata:
 
 networks:
   elastic:

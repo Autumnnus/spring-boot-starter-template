@@ -16,6 +16,7 @@ This project provides an opinionated Spring Boot starter template that implement
 - **ModelMapper integration** for DTO ↔ entity transformations.
 - **Ready-to-use testing profile** backed by an in-memory H2 database.
 - **Centralised media storage** on Amazon S3 with automatic image variants and manifest metadata.
+- **Real-time notifications microservice** powered by RabbitMQ + WebSockets for cross-service communication.
 ---
 
 ## 🌐 Geliştirici Servisleri
@@ -29,6 +30,7 @@ This project provides an opinionated Spring Boot starter template that implement
 | **Kibana**              | [http://localhost:5601](http://localhost:5601) | Log Interface          |
 | **APM Server**          | [http://localhost:8200](http://localhost:8200) | APM Server             |
 | **Grafana** | [http://localhost:3000](http://localhost:3000) |  Observation panels  |
+| **Notification Service** | [http://localhost:8081/swagger-ui.html](http://localhost:8081/swagger-ui.html) | WebSocket-enabled notifications API |
 
 ---
 
@@ -60,6 +62,7 @@ src/main/java/com/autumnus/spring_boot_starter_template
 │   ├── exception/        # Error model and global exception handler
 │   ├── idempotency/      # @Idempotent aspect and persistence layer
 │   ├── logging/          # Trace id filter and MDC integration
+│   ├── messaging/        # RabbitMQ producers and DTOs
 │   ├── persistence/      # Base JPA entities
 │   ├── rate_limiting/    # Bucket4j backed rate limiting filter/service
 │   └── security/         # JWT utilities, filter, and security helpers
@@ -71,6 +74,36 @@ src/main/java/com/autumnus/spring_boot_starter_template
         ├── mapper/       # ModelMapper powered converters
         ├── repository/   # Spring Data repositories & specifications
         └── service/      # Service interfaces + implementations
+
+notification-service/
+├── Dockerfile            # Container image for the notification microservice
+├── pom.xml               # Standalone Spring Boot build
+├── src/main/java/com/autumnus/notificationservice
+│   ├── NotificationServiceApplication.java
+│   ├── common/           # Request context + exception handling primitives
+│   ├── config/           # RabbitMQ, WebSocket and OpenAPI configuration
+│   └── notifications/    # Entities, DTOs, services, listeners and controllers
+└── src/main/resources/application.yml
+```
+
+### 🧱 Architecture Overview
+
+```mermaid
+graph TD
+    API[API Service\n(spring-boot-starter-template)]
+    Notifications[Notification Service\n(WebSocket + RabbitMQ)]
+    MainDB[(PostgreSQL\napplication_db)]
+    NotificationsDB[(PostgreSQL\nnotifications_db)]
+    Redis[(Redis)]
+    RabbitMQ[(RabbitMQ)]
+    Clients[Web / Mobile Clients]
+
+    API -->|JPA| MainDB
+    Notifications -->|JPA| NotificationsDB
+    API -->|Redis Cache| Redis
+    API -->|messages\nnotifications.exchange| RabbitMQ
+    RabbitMQ -->|notifications.queue| Notifications
+    Notifications -->|WebSocket /topic/notifications/{userId}| Clients
 ```
 
 ## ⚙️ Configuration
@@ -90,6 +123,8 @@ Configuration is managed through `application.yaml` and can be overridden via en
 | `application.storage.s3.endpoint` | Optional custom endpoint (e.g. Localstack). |
 | `application.storage.s3.path-style-access` | Enable when interacting with Localstack/minio style endpoints. |
 | `application.storage.s3.public-base-url` | Optional CDN/public URL prefix used when building asset links. |
+| `application.messaging.notifications.*` | Exchange, queue and routing key used to publish user notification messages. |
+| `spring.rabbitmq.*` | RabbitMQ connection credentials shared by the API and notification service. |
 | `spring.datasource.*` | Database connectivity settings (PostgreSQL by default). |
 | `spring.data.redis.*` | Redis connection info for caching / distributed tokens (optional). |
 
