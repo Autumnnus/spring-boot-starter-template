@@ -92,19 +92,21 @@ notification-service/
 graph TD
     API[API Service\n(spring-boot-starter-template)]
     Notifications[Notification Service\n(WebSocket + RabbitMQ)]
-    MainDB[(PostgreSQL\napplication_db)]
-    NotificationsDB[(PostgreSQL\nnotifications_db)]
+    SharedDB[(PostgreSQL\napplication_db)]
     Redis[(Redis)]
     RabbitMQ[(RabbitMQ)]
     Clients[Web / Mobile Clients]
 
-    API -->|JPA| MainDB
-    Notifications -->|JPA| NotificationsDB
+    API -->|JPA| SharedDB
+    Notifications -->|JPA| SharedDB
     API -->|Redis Cache| Redis
     API -->|messages\nnotifications.exchange| RabbitMQ
     RabbitMQ -->|notifications.queue| Notifications
     Notifications -->|WebSocket /topic/notifications/{userId}| Clients
 ```
+
+> Both services point to the same PostgreSQL database instance to simplify local development while still communicating
+> asynchronously through RabbitMQ.
 
 ## ⚙️ Configuration
 

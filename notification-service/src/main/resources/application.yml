@@ -5,9 +5,9 @@ spring:
   application:
     name: notification-service
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/notifications_db}
-    username: ${SPRING_DATASOURCE_USERNAME:notification_user}
-    password: ${SPRING_DATASOURCE_PASSWORD:notification_password}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/application_db}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
   jpa:
     hibernate:
       ddl-auto: update
