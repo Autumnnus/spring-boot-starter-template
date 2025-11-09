@@ -4,6 +4,8 @@ import com.autumnus.spring_boot_starter_template.common.exception.ResourceNotFou
 import com.autumnus.spring_boot_starter_template.common.logging.annotation.AuditAction;
 import com.autumnus.spring_boot_starter_template.common.logging.annotation.Auditable;
 import com.autumnus.spring_boot_starter_template.common.logging.context.AuditContextHolder;
+import com.autumnus.spring_boot_starter_template.common.messaging.NotificationProducer;
+import com.autumnus.spring_boot_starter_template.common.messaging.NotificationType;
 import com.autumnus.spring_boot_starter_template.common.storage.dto.MediaAsset;
 import com.autumnus.spring_boot_starter_template.common.storage.exception.MediaStorageException;
 import com.autumnus.spring_boot_starter_template.common.storage.exception.MediaValidationException;
@@ -52,6 +54,7 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder passwordEncoder;
     private final MediaStorageService mediaStorageService;
     private final ObjectMapper objectMapper;
+    private final NotificationProducer notificationProducer;
 
     public UserServiceImpl(
             UserRepository userRepository,
@@ -59,7 +62,8 @@ public class UserServiceImpl implements UserService {
             UserMapper userMapper,
             PasswordEncoder passwordEncoder,
             MediaStorageService mediaStorageService,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            NotificationProducer notificationProducer
     ) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
@@ -67,6 +71,7 @@ public class UserServiceImpl implements UserService {
         this.passwordEncoder = passwordEncoder;
         this.mediaStorageService = mediaStorageService;
         this.objectMapper = objectMapper;
+        this.notificationProducer = notificationProducer;
     }
 
     @Override
@@ -100,6 +105,15 @@ public class UserServiceImpl implements UserService {
         final User saved = userRepository.save(user);
         AuditContextHolder.setEntityId(saved.getId().toString());
         AuditContextHolder.setNewValue(userMapper.toResponse(saved, userMapper.extractRoleNames(saved)));
+
+        // Send welcome notification
+        notificationProducer.sendNotification(
+                saved.getId(),
+                "Welcome to Our Platform!",
+                String.format("Hello %s! Your account has been successfully created. Welcome aboard!", saved.getUsername()),
+                NotificationType.SUCCESS
+        );
+
         return userMapper.toResponse(saved, userMapper.extractRoleNames(saved));
     }
 

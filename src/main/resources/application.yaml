@@ -35,6 +35,11 @@ spring:
   jackson:
     serialization:
       write-dates-as-timestamps: false
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
 
 logging:
   pattern:
@@ -80,3 +85,6 @@ application:
       endpoint: ${AWS_S3_ENDPOINT}
       path-style-access: false
       public-base-url: ${AWS_S3_PUBLIC_URL}
+  rabbitmq:
+    exchange: notifications.exchange
+    routing-key: notifications.new
