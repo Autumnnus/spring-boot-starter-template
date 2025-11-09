@@ -3,9 +3,9 @@ spring:
     active:
       - dev
   datasource:
-    url: jdbc:postgresql://localhost:15432/postgres
-    username: spring-boot-starter-user
-    password: spring-boot-starter-password
+    url: ${POSTGRES_URI}:${POSTGRES_PORT}/${POSTGRES_DB}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
   docker:
     compose:
       lifecycle-management: START_AND_STOP
@@ -26,13 +26,12 @@ spring:
     open-in-view: false
   data:
     redis:
-      host: localhost
-      port:
-        - "6379:6379"
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
   elasticsearch:
-    uris: http://localhost:9200
-    username: elastic
-    password: changeme
+    uris: ${ELASTICSEARCH_HOSTS}
+    username: ${ELASTICSEARCH_USERNAME}
+    password: ${ELASTIC_PASSWORD}
   jackson:
     serialization:
       write-dates-as-timestamps: false
@@ -59,7 +58,7 @@ management:
 
 application:
   security:
-    jwt-secret: change-me-change-me-change-me-change-me
+    jwt-secret: ${JWT_SECRET}
     access-token-ttl: PT15M
     refresh-token-ttl: P7D
     email-verification-token-ttl: PT24H
@@ -72,3 +71,12 @@ application:
   rate-limit:
     capacity: 100
     refill-period: PT1M
+  storage:
+    s3:
+      bucket: ${AWS_S3_BUCKET}
+      region: ${AWS_S3_REGION}
+      access-key: ${AWS_ACCESS_KEY_ID}
+      secret-key: ${AWS_SECRET_ACCESS_KEY}
+      endpoint: ${AWS_S3_ENDPOINT}
+      path-style-access: false
+      public-base-url: ${AWS_S3_PUBLIC_URL}

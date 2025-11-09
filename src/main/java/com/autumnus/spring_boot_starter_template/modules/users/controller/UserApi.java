@@ -7,12 +7,19 @@ import com.autumnus.spring_boot_starter_template.modules.users.dto.UserUpdateReq
 import com.autumnus.spring_boot_starter_template.modules.users.entity.RoleName;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.media.SchemaProperty;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.UUID;
 
@@ -46,4 +53,27 @@ public interface UserApi {
     @Operation(summary = "Delete user", description = "Delete a user by ID.")
     @DeleteMapping("/{id}")
     ResponseEntity<Void> deleteUser(@PathVariable UUID id);
+
+    @Operation(
+            summary = "Upload profile photo",
+            description = "Upload or replace the profile photo for the given user."
+    )
+    @PostMapping(value = "/{id}/profile-photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    ApiResponse<UserResponse> uploadProfilePhoto(
+            @PathVariable UUID id,
+            @Parameter(
+                    description = "Profile image file",
+                    required = true,
+                    content = @Content(
+                            mediaType = MediaType.MULTIPART_FORM_DATA_VALUE,
+                            schema = @Schema(type = "string", format = "binary")
+                    )
+            )
+            @RequestPart("file") MultipartFile file
+    );
+
+
+    @Operation(summary = "Delete profile photo", description = "Remove the profile photo for the given user.")
+    @DeleteMapping("/{id}/profile-photo")
+    ResponseEntity<Void> deleteProfilePhoto(@PathVariable UUID id);
 }

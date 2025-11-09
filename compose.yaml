@@ -3,11 +3,11 @@ services:
     image: postgres:16-trixie
     container_name: spring-boot-starter-postgres
     environment:
-      - "POSTGRES_DB=postgres"
-      - "POSTGRES_USER=spring-boot-starter-user"
-      - "POSTGRES_PASSWORD=spring-boot-starter-password"
+      - "POSTGRES_DB=${POSTGRES_DB}"
+      - "POSTGRES_USER=${POSTGRES_USER}"
+      - "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}"
     ports:
-      - "15432:5432"
+      - "${POSTGRES_PORT}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -20,7 +20,7 @@ services:
     image: "redis:latest"
     container_name: spring-boot-starter-redis
     ports:
-      - "6379"
+      - "${REDIS_PORT}:${REDIS_PORT}"
     volumes:
       - redisdata:/data
     healthcheck:
@@ -34,7 +34,7 @@ services:
     container_name: spring-boot-starter-redis-insight
     restart: always
     ports:
-      - "5540:5540"
+      - "${REDIS_INSIGHT_PORT}:${REDIS_INSIGHT_PORT}"
     volumes:
       - redis-insight:/data
 
@@ -42,14 +42,14 @@ services:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.15.3
     container_name: elastic-setup
     environment:
-      - ELASTIC_PASSWORD=changeme
-      - KIBANA_PASSWORD=changeme
+      - "ELASTIC_PASSWORD=${ELASTIC_PASSWORD}"
+      - "KIBANA_PASSWORD=${KIBANA_PASSWORD}"
     command: >
       bash -c '
         echo "Waiting for Elasticsearch..."
-        until curl -s -u elastic:changeme http://elasticsearch:9200/_cluster/health | grep -vq '"'"'status":"red"'"'"'; do sleep 5; done;
+        until curl -s -u elastic:${ELASTIC_PASSWORD} http://elasticsearch:9200/_cluster/health | grep -vq '"'"'status":"red"'"'"'; do sleep 5; done;
         echo "Setting kibana_system password..."
-        curl -u elastic:changeme -X POST http://elasticsearch:9200/_security/user/kibana_system/_password -H "Content-Type: application/json" -d'"'"'{"password":"changeme"}'"'"'
+        curl -u elastic:${ELASTIC_PASSWORD} -X POST http://elasticsearch:9200/_security/user/kibana_system/_password -H "Content-Type: application/json" -d'"'"'{"password":"${KIBANA_PASSWORD}"}'"'"'
         echo "Passwords configured!"
       '
     depends_on:
@@ -70,7 +70,7 @@ services:
       - xpack.security.enabled=true
       - xpack.security.http.ssl.enabled=false
       - xpack.security.transport.ssl.enabled=false
-      - ELASTIC_PASSWORD=changeme
+      - "ELASTIC_PASSWORD=${ELASTIC_PASSWORD}"
     ulimits:
       memlock:
         soft: -1
@@ -86,7 +86,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          'curl -s -u elastic:changeme http://localhost:9200/_cluster/health | grep -vq ''"status":"red"''',
+          "curl -s -u elastic:${ELASTIC_PASSWORD} http://localhost:9200/_cluster/health | grep -vq '\"status\":\"red\"'",
         ]
       interval: 10s
       timeout: 10s
@@ -103,7 +103,7 @@ services:
       - XPACK_SECURITY_ENABLED=true
       - TELEMETRY_ENABLED=false
     ports:
-      - 5601:5601
+      - "${KIBANA_PORT}:${KIBANA_PORT}"
     depends_on:
       elasticsearch:
         condition: service_healthy
@@ -131,10 +131,10 @@ services:
         -E apm-server.kibana.enabled=true
         -E apm-server.kibana.host=kibana:5601
         -E apm-server.kibana.username=elastic
-        -E apm-server.kibana.password=changeme
+        -E apm-server.kibana.password=${ELASTIC_PASSWORD}
         -E output.elasticsearch.hosts=["elasticsearch:9200"]
         -E output.elasticsearch.username=elastic
-        -E output.elasticsearch.password=changeme
+        -E output.elasticsearch.password=${ELASTIC_PASSWORD}
     ports:
       - 8200:8200
     networks:

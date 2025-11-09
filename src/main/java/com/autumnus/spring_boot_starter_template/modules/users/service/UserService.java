@@ -1,5 +1,6 @@
 package com.autumnus.spring_boot_starter_template.modules.users.service;
 
+import com.autumnus.spring_boot_starter_template.modules.users.dto.ProfilePhotoUploadCommand;
 import com.autumnus.spring_boot_starter_template.modules.users.dto.UpdateProfileRequest;
 import com.autumnus.spring_boot_starter_template.modules.users.dto.UserCreateRequest;
 import com.autumnus.spring_boot_starter_template.modules.users.dto.UserResponse;
@@ -31,6 +32,10 @@ public interface UserService {
     User findEntityById(Long id);
 
     UserResponse updateProfile(Long userId, UpdateProfileRequest request);
+
+    UserResponse updateProfilePhoto(UUID uuid, ProfilePhotoUploadCommand command);
+
+    void removeProfilePhoto(UUID uuid);
 
     void activateUser(Long userId);
 

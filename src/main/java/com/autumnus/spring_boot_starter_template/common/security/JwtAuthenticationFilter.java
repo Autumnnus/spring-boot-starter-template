@@ -32,6 +32,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             final String token = bearerToken.substring(7);
             try {
                 final var authentication = tokenProvider.toAuthentication(token);
+                System.out.println("Name"+authentication.getName());
                 SecurityContextHolder.getContext().setAuthentication(authentication);
                 RequestContextHolder.getContext().setUserId(authentication.getName());
             } catch (Exception ex) {
