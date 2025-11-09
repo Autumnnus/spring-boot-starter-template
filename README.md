@@ -32,13 +32,15 @@ The application follows a microservices architecture with independent services:
    - User management
    - Authentication & Authorization
    - Media storage
-   - PostgreSQL database (port 5432)
 
 2. **Notification Service** (Port 8081)
    - Real-time notifications via WebSocket
    - Notification persistence
    - RabbitMQ consumer for async notification processing
-   - Separate PostgreSQL database (port 5433)
+
+**Shared Resources:**
+   - PostgreSQL database (port 5432) - shared by both services
+   - RabbitMQ message broker (ports 5672, 15672)
 
 ### Communication
 
@@ -175,7 +177,7 @@ The notification service is an independent microservice that handles real-time n
 ### Features
 
 - **Real-time delivery** via WebSocket (STOMP over SockJS)
-- **Persistent storage** in separate PostgreSQL database
+- **Persistent storage** in shared PostgreSQL database
 - **Async processing** via RabbitMQ message queue
 - **REST API** for querying notification history
 - **Status tracking** (READ/UNREAD)

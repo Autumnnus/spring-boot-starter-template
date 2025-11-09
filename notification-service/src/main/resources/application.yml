@@ -5,9 +5,9 @@ spring:
   application:
     name: notification-service
   datasource:
-    url: jdbc:postgresql://${POSTGRES_NOTIFICATIONS_HOST:localhost}:${POSTGRES_NOTIFICATIONS_PORT:5433}/${POSTGRES_NOTIFICATIONS_DB:notifications_db}
-    username: ${POSTGRES_NOTIFICATIONS_USER:notifications_user}
-    password: ${POSTGRES_NOTIFICATIONS_PASSWORD:notifications_pass}
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:postgres}
+    username: ${POSTGRES_USER:postgres}
+    password: ${POSTGRES_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:

@@ -38,23 +38,6 @@ services:
     volumes:
       - redis-insight:/data
 
-  postgres-notifications:
-    image: postgres:16-trixie
-    container_name: spring-boot-starter-postgres-notifications
-    environment:
-      - "POSTGRES_DB=notifications_db"
-      - "POSTGRES_USER=notifications_user"
-      - "POSTGRES_PASSWORD=notifications_pass"
-    ports:
-      - "5433:5432"
-    volumes:
-      - pgdata-notifications:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U notifications_user -d notifications_db"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
   rabbitmq:
     image: rabbitmq:3.13-management
     container_name: spring-boot-starter-rabbitmq
@@ -78,11 +61,11 @@ services:
       dockerfile: Dockerfile
     container_name: notification-service
     environment:
-      - "POSTGRES_NOTIFICATIONS_HOST=postgres-notifications"
-      - "POSTGRES_NOTIFICATIONS_PORT=5432"
-      - "POSTGRES_NOTIFICATIONS_DB=notifications_db"
-      - "POSTGRES_NOTIFICATIONS_USER=notifications_user"
-      - "POSTGRES_NOTIFICATIONS_PASSWORD=notifications_pass"
+      - "POSTGRES_HOST=postgres"
+      - "POSTGRES_PORT=5432"
+      - "POSTGRES_DB=${POSTGRES_DB}"
+      - "POSTGRES_USER=${POSTGRES_USER}"
+      - "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}"
       - "RABBITMQ_HOST=rabbitmq"
       - "RABBITMQ_PORT=5672"
       - "RABBITMQ_USERNAME=guest"
@@ -90,7 +73,7 @@ services:
     ports:
       - "8081:8081"
     depends_on:
-      postgres-notifications:
+      postgres:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
@@ -211,7 +194,6 @@ volumes:
   pgdata:
   redisdata:
   redis-insight:
-  pgdata-notifications:
   rabbitmq-data:
   esdata:
 
