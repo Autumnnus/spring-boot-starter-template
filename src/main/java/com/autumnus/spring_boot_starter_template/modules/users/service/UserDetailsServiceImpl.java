@@ -28,6 +28,13 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         final Set<SimpleGrantedAuthority> authorities = user.getRoleAssignments().stream()
                 .map(assignment -> new SimpleGrantedAuthority("ROLE_" + assignment.getRole().getName().name()))
                 .collect(Collectors.toUnmodifiableSet());
-        return new UserPrincipal(user.getId(), user.getUuid(), user.getPasswordHash(), authorities, user.isActive());
+        return new UserPrincipal(
+                user.getId(),
+                user.getEmail(),
+                user.getUsername(),
+                user.getPasswordHash(),
+                authorities,
+                user.isActive()
+        );
     }
 }

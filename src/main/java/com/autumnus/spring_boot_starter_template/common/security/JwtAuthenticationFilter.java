@@ -1,6 +1,7 @@
 package com.autumnus.spring_boot_starter_template.common.security;
 
 import com.autumnus.spring_boot_starter_template.common.context.RequestContextHolder;
+import com.autumnus.spring_boot_starter_template.modules.users.service.UserPrincipal;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -32,9 +33,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             final String token = bearerToken.substring(7);
             try {
                 final var authentication = tokenProvider.toAuthentication(token);
-                System.out.println("Name"+authentication.getName());
                 SecurityContextHolder.getContext().setAuthentication(authentication);
-                RequestContextHolder.getContext().setUserId(authentication.getName());
+                if (authentication.getPrincipal() instanceof UserPrincipal principal) {
+                    RequestContextHolder.getContext().setUserId(String.valueOf(principal.getUserId()));
+                    RequestContextHolder.getContext().setClientId(principal.getEmail());
+                } else {
+                    RequestContextHolder.getContext().setUserId(authentication.getName());
+                }
             } catch (Exception ex) {
                 SecurityContextHolder.clearContext();
                 throw new UnauthorizedException("Invalid or expired token");

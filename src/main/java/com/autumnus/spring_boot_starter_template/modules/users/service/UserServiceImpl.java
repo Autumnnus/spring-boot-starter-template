@@ -38,7 +38,6 @@ import java.time.Instant;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 
 @Service
 @Transactional
@@ -81,12 +80,8 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(readOnly = true)
-    public UserResponse getUser(UUID uuid) {
-//        if (command == null || command.content() == null || command.content().length == 0) {
-//            throw new MediaValidationException("Profile photo file is required");
-//        }
-        final User user = userRepository.findByUuid(uuid)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    public UserResponse getUser(Long id) {
+        final User user = findEntityById(id);
         return userMapper.toResponse(user, userMapper.extractRoleNames(user));
     }
 
@@ -103,7 +98,7 @@ public class UserServiceImpl implements UserService {
         user.setPasswordChangedAt(Instant.now());
         assignRoles(user, request.roles(), null);
         final User saved = userRepository.save(user);
-        AuditContextHolder.setEntityId(saved.getUuid().toString());
+        AuditContextHolder.setEntityId(saved.getId().toString());
         AuditContextHolder.setNewValue(userMapper.toResponse(saved, userMapper.extractRoleNames(saved)));
         return userMapper.toResponse(saved, userMapper.extractRoleNames(saved));
     }
@@ -114,12 +109,11 @@ public class UserServiceImpl implements UserService {
             action = AuditAction.UPDATE,
             captureOldValue = true,
             captureNewValue = true,
-            entityIdExpression = "#uuid"
+            entityIdExpression = "#id"
     )
-    public UserResponse updateUser(UUID uuid, UserUpdateRequest request) {
-        final User user = userRepository.findByUuid(uuid)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-        AuditContextHolder.setEntityId(user.getUuid().toString());
+    public UserResponse updateUser(Long id, UserUpdateRequest request) {
+        final User user = findEntityById(id);
+        AuditContextHolder.setEntityId(user.getId().toString());
         AuditContextHolder.setOldValue(userMapper.toResponse(user, userMapper.extractRoleNames(user)));
         if (request.email() != null && !Objects.equals(request.email(), user.getEmail())) {
             validateEmailUniqueness(request.email(), user.getId());
@@ -141,12 +135,11 @@ public class UserServiceImpl implements UserService {
             entityType = "USER",
             action = AuditAction.DELETE,
             captureOldValue = true,
-            entityIdExpression = "#uuid"
+            entityIdExpression = "#id"
     )
-    public void deleteUser(UUID uuid) {
-        final User user = userRepository.findByUuid(uuid)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-        AuditContextHolder.setEntityId(user.getUuid().toString());
+    public void deleteUser(Long id) {
+        final User user = findEntityById(id);
+        AuditContextHolder.setEntityId(user.getId().toString());
         AuditContextHolder.setOldValue(userMapper.toResponse(user, userMapper.extractRoleNames(user)));
         user.markDeleted();
         user.setActive(false);
@@ -182,7 +175,7 @@ public class UserServiceImpl implements UserService {
     )
     public UserResponse updateProfile(Long userId, UpdateProfileRequest request) {
         final User user = findEntityById(userId);
-        AuditContextHolder.setEntityId(user.getUuid().toString());
+        AuditContextHolder.setEntityId(user.getId().toString());
         AuditContextHolder.setOldValue(userMapper.toResponse(user, userMapper.extractRoleNames(user)));
         if (request.email() != null && !Objects.equals(request.email(), user.getEmail())) {
             validateEmailUniqueness(request.email(), user.getId());
@@ -203,12 +196,11 @@ public class UserServiceImpl implements UserService {
             action = AuditAction.UPDATE,
             captureOldValue = true,
             captureNewValue = true,
-            entityIdExpression = "#uuid"
+            entityIdExpression = "#id"
     )
-    public UserResponse updateProfilePhoto(UUID uuid, ProfilePhotoUploadCommand command) {
-        final User user = userRepository.findByUuid(uuid)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-        AuditContextHolder.setEntityId(user.getUuid().toString());
+    public UserResponse updateProfilePhoto(Long id, ProfilePhotoUploadCommand command) {
+        final User user = findEntityById(id);
+        AuditContextHolder.setEntityId(user.getId().toString());
         AuditContextHolder.setOldValue(userMapper.toResponse(user, userMapper.extractRoleNames(user)));
         final MediaManifest existingManifest = parseManifest(user.getProfilePhotoManifest());
         final MediaUpload upload = new MediaUpload(command.originalFilename(), command.contentType(), command.content());
@@ -225,12 +217,11 @@ public class UserServiceImpl implements UserService {
             action = AuditAction.UPDATE,
             captureOldValue = true,
             captureNewValue = true,
-            entityIdExpression = "#uuid"
+            entityIdExpression = "#id"
     )
-    public void removeProfilePhoto(UUID uuid) {
-        final User user = userRepository.findByUuid(uuid)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-        AuditContextHolder.setEntityId(user.getUuid().toString());
+    public void removeProfilePhoto(Long id) {
+        final User user = findEntityById(id);
+        AuditContextHolder.setEntityId(user.getId().toString());
         if (user.getProfilePhotoManifest() == null) {
             return;
         }
@@ -252,7 +243,7 @@ public class UserServiceImpl implements UserService {
     )
     public void activateUser(Long userId) {
         final User user = findEntityById(userId);
-        AuditContextHolder.setEntityId(user.getUuid().toString());
+        AuditContextHolder.setEntityId(user.getId().toString());
         AuditContextHolder.setOldValue(userMapper.toResponse(user, userMapper.extractRoleNames(user)));
         user.setActive(true);
         user.setLockedUntil(null);
@@ -271,7 +262,7 @@ public class UserServiceImpl implements UserService {
     )
     public void deactivateUser(Long userId) {
         final User user = findEntityById(userId);
-        AuditContextHolder.setEntityId(user.getUuid().toString());
+        AuditContextHolder.setEntityId(user.getId().toString());
         AuditContextHolder.setOldValue(userMapper.toResponse(user, userMapper.extractRoleNames(user)));
         user.setActive(false);
         userRepository.save(user);

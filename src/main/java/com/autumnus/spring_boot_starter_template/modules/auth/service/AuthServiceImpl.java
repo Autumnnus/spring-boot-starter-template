@@ -86,7 +86,7 @@ public class AuthServiceImpl implements AuthService {
     public TokenResponse login(LoginRequest request) {
         final User user = userService.findEntityByEmail(request.email())
                 .orElseThrow(() -> new UnauthorizedException("Invalid credentials"));
-        AuditContextHolder.setEntityId(user.getUuid().toString());
+        AuditContextHolder.setEntityId(user.getId().toString());
         userService.checkAccountLocked(user);
         try {
             authenticationManager.authenticate(

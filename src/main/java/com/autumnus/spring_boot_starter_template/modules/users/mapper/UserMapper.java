@@ -43,7 +43,10 @@ public class UserMapper {
 
     public UserResponse toResponse(User user, Set<RoleName> roles) {
         return UserResponse.builder()
-                .uuid(user.getUuid())
+                .id(user.getId())
+                .createdAt(user.getCreatedAt())
+                .updatedAt(user.getUpdatedAt())
+                .deletedAt(user.getDeletedAt())
                 .email(user.getEmail())
                 .username(user.getUsername())
                 .active(user.isActive())
@@ -53,8 +56,6 @@ public class UserMapper {
                 .passwordChangedAt(user.getPasswordChangedAt())
                 .failedLoginAttempts(user.getFailedLoginAttempts())
                 .lockedUntil(user.getLockedUntil())
-                .createdAt(user.getCreatedAt())
-                .updatedAt(user.getUpdatedAt())
                 .profilePhoto(mapProfilePhoto(user))
                 .build();
     }

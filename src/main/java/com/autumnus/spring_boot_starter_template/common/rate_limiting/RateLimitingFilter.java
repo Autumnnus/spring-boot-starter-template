@@ -57,7 +57,9 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     }
 
     private String buildKey(HttpServletRequest request) {
-        final String userId = SecurityUtils.getCurrentUserId().orElse("anonymous");
+        final String userId = SecurityUtils.getCurrentUserId()
+                .map(String::valueOf)
+                .orElse("anonymous");
         final String ip = request.getRemoteAddr();
         final String deviceId = request.getHeader("X-Device-Id");
         return String.join(":", userId, ip, deviceId != null ? deviceId : "unknown", request.getMethod(), request.getRequestURI());

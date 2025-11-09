@@ -13,8 +13,7 @@ import java.util.Set;
 @Table(
         name = "users",
         indexes = {
-                @Index(name = "idx_users_email", columnList = "email", unique = true),
-                @Index(name = "idx_users_uuid", columnList = "uuid", unique = true)
+                @Index(name = "idx_users_email", columnList = "email", unique = true)
         }
 )
 @Getter

@@ -5,6 +5,7 @@ This project provides an opinionated Spring Boot starter template that implement
 ## ✨ Highlights
 
 - **Modular architecture** with domain-specific modules under `modules/` (e.g. `users`) and cross-cutting concerns in `common/`.
+- **Shared base models** providing numeric ids, audit timestamps, and DTO metadata via `BaseEntity`/`BaseDto`.
 - **JWT based authentication** (`Bearer` tokens) with pluggable secret via configuration.
 - **RBAC + ABAC**: Role checks are enforced via Spring Security annotations while resource ownership checks are delegated to dedicated guards.
 - **Idempotent write endpoints** using the `@Idempotent` annotation and the `idempotency_keys` table.
@@ -128,20 +129,25 @@ PDF documents are limited to 25 MB. Other media kinds can be extended with add
 
 To upload multiple images in a single call, use the `MediaStorageService#storeAll` API which enforces a batch size of 1–100 files and applies the same validation/variant pipeline to each item.
 
-### User Profile Photos
+### User Profile & Photos
 
-The `users` module stores the media manifest JSON directly on the `users.profile_photo_manifest` column. The `GET /api/v1/users/{id}` response now includes a `profilePhoto` object exposing public URLs for each variant.
+The `users` module stores the media manifest JSON directly on the `users.profile_photo_manifest` column. Each `UserResponse` now exposes the numeric `id`, audit timestamps, and a `profilePhoto` object with public URLs for every variant.
 
-Swagger exposes two new endpoints:
+Swagger documents both administrative and self-service flows:
 
-- `POST /api/v1/users/{id}/profile-photo` (multipart form upload with `file` part) — creates or replaces the avatar.
-- `DELETE /api/v1/users/{id}/profile-photo` — removes the avatar and deletes the backing S3 objects.
+- `/api/v1/users/{id}` endpoints remain available for elevated roles that manage other accounts.
+- `/api/v1/users/me` endpoints allow authenticated users to fetch and mutate their own profile without providing an id:
+  - `GET /api/v1/users/me` — retrieve your profile.
+  - `PUT /api/v1/users/me` — update your email/username.
+  - `POST /api/v1/users/me/profile-photo` — upload or replace your avatar (multipart `file`, PNG/JPEG ≤ 10 MB).
+  - `DELETE /api/v1/users/me/profile-photo` — remove your avatar and purge stored objects.
 
-Grant an access token, navigate to Swagger UI, and execute the upload endpoint by choosing an image file (PNG/JPEG ≤ 10 MB). The manifest is updated and older assets are cleaned up automatically.
+Once authorised in Swagger UI, select the self-service operations to update your profile—the backend extracts immutable identifiers directly from the JWT payload.
 
 ## 🔐 Security Model
 
 - **Authentication:** Incoming requests must carry a `Bearer <token>` header containing a JWT generated with the configured secret.
+- **Token payload:** Access and refresh tokens embed the immutable user id, email, username, and role claims so clients never need to submit those identifiers explicitly.
 - **Authorisation:**
   - RBAC checks rely on Spring Security's `@PreAuthorize`/`@PostAuthorize` annotations (e.g. `hasRole('ADMIN')`).
   - ABAC checks leverage helper beans such as `OwnershipGuard` for owner-scoped access (`@ownershipGuard.isOwner(#id)`).

@@ -11,19 +11,17 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.util.Optional;
-import java.util.UUID;
-
 public interface UserService {
 
     Page<UserResponse> listUsers(Pageable pageable, RoleName role, Boolean active);
 
-    UserResponse getUser(UUID uuid);
+    UserResponse getUser(Long id);
 
     UserResponse createUser(UserCreateRequest request);
 
-    UserResponse updateUser(UUID uuid, UserUpdateRequest request);
+    UserResponse updateUser(Long id, UserUpdateRequest request);
 
-    void deleteUser(UUID uuid);
+    void deleteUser(Long id);
 
     Optional<User> findEntityByEmail(String email);
 
@@ -33,9 +31,9 @@ public interface UserService {
 
     UserResponse updateProfile(Long userId, UpdateProfileRequest request);
 
-    UserResponse updateProfilePhoto(UUID uuid, ProfilePhotoUploadCommand command);
+    UserResponse updateProfilePhoto(Long id, ProfilePhotoUploadCommand command);
 
-    void removeProfilePhoto(UUID uuid);
+    void removeProfilePhoto(Long id);
 
     void activateUser(Long userId);
 

@@ -161,11 +161,6 @@ public class AuditLogAspect {
             return idValue != null ? idValue.toString() : null;
         } catch (Exception ignored) {
         }
-        try {
-            final Object uuidValue = result.getClass().getMethod("getUuid").invoke(result);
-            return uuidValue != null ? uuidValue.toString() : null;
-        } catch (Exception ignored) {
-        }
         return null;
     }
 

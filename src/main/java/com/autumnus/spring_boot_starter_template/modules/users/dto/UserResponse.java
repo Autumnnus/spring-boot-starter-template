@@ -1,29 +1,32 @@
 package com.autumnus.spring_boot_starter_template.modules.users.dto;
 
+import com.autumnus.spring_boot_starter_template.common.api.dto.BaseDto;
 import com.autumnus.spring_boot_starter_template.common.storage.dto.MediaResourceResponse;
 import com.autumnus.spring_boot_starter_template.modules.users.entity.RoleName;
-import lombok.Builder;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 import java.time.Instant;
 import java.util.Set;
-import java.util.UUID;
 
 @Getter
-@Builder
-public class UserResponse {
+@SuperBuilder
+@NoArgsConstructor
+@AllArgsConstructor
+@EqualsAndHashCode(callSuper = true)
+public class UserResponse extends BaseDto {
 
-    private final UUID uuid;
-    private final String email;
-    private final String username;
-    private final boolean active;
-    private final boolean emailVerified;
-    private final Set<RoleName> roles;
-    private final Instant lastLoginAt;
-    private final Instant passwordChangedAt;
-    private final Integer failedLoginAttempts;
-    private final Instant lockedUntil;
-    private final Instant createdAt;
-    private final Instant updatedAt;
-    private final MediaResourceResponse profilePhoto;
+    private String email;
+    private String username;
+    private boolean active;
+    private boolean emailVerified;
+    private Set<RoleName> roles;
+    private Instant lastLoginAt;
+    private Instant passwordChangedAt;
+    private Integer failedLoginAttempts;
+    private Instant lockedUntil;
+    private MediaResourceResponse profilePhoto;
 }

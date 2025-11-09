@@ -38,16 +38,20 @@ public class JwtTokenProvider {
         if (!(userDetails instanceof UserPrincipal principal)) {
             throw new IllegalArgumentException("UserDetails must be an instance of UserPrincipal");
         }
-        return buildToken(principal.getUuid().toString(),
+        return buildToken(
                 principal.getUserId(),
+                principal.getEmail(),
+                principal.getAccountUsername(),
                 extractRoleNames(principal.getAuthorities()),
                 properties.getAccessTokenTtl(),
                 Map.of("type", "access"));
     }
 
     public String generateRefreshToken(com.autumnus.spring_boot_starter_template.modules.users.entity.User user) {
-        return buildToken(user.getUuid().toString(),
+        return buildToken(
                 user.getId(),
+                user.getEmail(),
+                user.getUsername(),
                 user.getRoleAssignments().stream()
                         .map(assignment -> "ROLE_" + assignment.getRole().getName().name())
                         .collect(Collectors.toSet()),
@@ -76,7 +80,6 @@ public class JwtTokenProvider {
 
     public Authentication toAuthentication(String token) {
         final Claims claims = parseClaims(token);
-        final String subject = claims.getSubject();
         final List<String> roles = claims.get("roles", List.class);
         final List<GrantedAuthority> authorities = roles == null
                 ? List.of()
@@ -84,9 +87,15 @@ public class JwtTokenProvider {
                 .map(SimpleGrantedAuthority::new)
                 .map(a -> (GrantedAuthority) a)
                 .toList();
+        String email = claims.get("email", String.class);
+        if (email == null) {
+            email = claims.getSubject();
+        }
+        final String username = claims.get("username", String.class);
         final UserPrincipal principal = UserPrincipal.fromToken(
                 claims.get("uid", Number.class).longValue(),
-                subject,
+                email,
+                username,
                 authorities
         );
         return new UsernamePasswordAuthenticationToken(principal, token, authorities);
@@ -101,18 +110,21 @@ public class JwtTokenProvider {
     }
 
     private String buildToken(
-            String subject,
             Long userId,
+            String email,
+            String username,
             Collection<String> roles,
             java.time.Duration ttl,
             Map<String, Object> attributes
     ) {
         final Instant now = Instant.now();
         return Jwts.builder()
-                .subject(subject)
+                .subject(email != null ? email : String.valueOf(userId))
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plus(ttl)))
                 .claim("uid", userId)
+                .claim("email", email)
+                .claim("username", username)
                 .claim("roles", roles)
                 .addClaims(attributes)
                 .signWith(signingKey)
