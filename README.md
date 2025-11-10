@@ -16,6 +16,7 @@ This project provides an opinionated Spring Boot starter template that implement
 - **ModelMapper integration** for DTO ↔ entity transformations.
 - **Ready-to-use testing profile** backed by an in-memory H2 database.
 - **Centralised media storage** on Amazon S3 with automatic image variants and manifest metadata.
+- **Real-time notifications** delivered through a dedicated microservice backed by RabbitMQ and WebSockets.
 ---
 
 ## 🌐 Geliştirici Servisleri
@@ -25,10 +26,37 @@ This project provides an opinionated Spring Boot starter template that implement
 | **Swagger (Gateway)**   | [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html) | API dokümantasyonu     |
 | **Redis Insight**       | [http://localhost:5540](http://localhost:5540) | Redis yönetim arayüzü  |
 | **RabbitMQ Management** | [http://localhost:15672](http://localhost:15672) | Queue Management       |
+| **Notification Service Swagger** | [http://localhost:8081/swagger-ui/index.html](http://localhost:8081/swagger-ui/index.html) | Notification microservice API |
 | **Elasticsearch**       | [http://localhost:9200](http://localhost:9200) | Search & Index Service |
 | **Kibana**              | [http://localhost:5601](http://localhost:5601) | Log Interface          |
 | **APM Server**          | [http://localhost:8200](http://localhost:8200) | APM Server             |
 | **Grafana** | [http://localhost:3000](http://localhost:3000) |  Observation panels  |
+
+---
+
+## 🧱 Microservice Architecture
+
+```mermaid
+flowchart LR
+    subgraph Core Platform
+        A[Gateway API\\n(spring-boot-starter-template)]
+    end
+    subgraph Messaging
+        MQ[(RabbitMQ\\nnotifications.exchange)]
+    end
+    subgraph Realtime Delivery
+        N[Notification Service\\n(WebSocket + REST)]
+    end
+    DB[(PostgreSQL)]
+    REDIS[(Redis)]
+
+    A -- JPA --> DB
+    A -- Cache --> REDIS
+    A -- NotificationMessage --> MQ
+    MQ -- Async consume --> N
+    N -- Persist --> DB
+    N -- Push --> Clients[/WebSocket subscribers/]
+```
 
 ---
 
@@ -73,6 +101,20 @@ src/main/java/com/autumnus/spring_boot_starter_template
         └── service/      # Service interfaces + implementations
 ```
 
+```text
+notification-service
+├── NotificationServiceApplication.java
+├── common/              # Shared context, API and exception handling
+├── config/              # RabbitMQ, WebSocket, OpenAPI configuration
+└── modules/notifications
+    ├── controller/      # REST endpoints under /api/v1/notifications
+    ├── dto/             # API and messaging DTOs
+    ├── entity/          # Notification JPA entities
+    ├── listener/        # RabbitMQ listeners & WebSocket publisher
+    ├── mapper/          # Entity → DTO mappers
+    └── service/         # Notification domain services
+```
+
 ## ⚙️ Configuration
 
 Configuration is managed through `application.yaml` and can be overridden via environment variables or profile-specific YAML files.
@@ -90,8 +132,10 @@ Configuration is managed through `application.yaml` and can be overridden via en
 | `application.storage.s3.endpoint` | Optional custom endpoint (e.g. Localstack). |
 | `application.storage.s3.path-style-access` | Enable when interacting with Localstack/minio style endpoints. |
 | `application.storage.s3.public-base-url` | Optional CDN/public URL prefix used when building asset links. |
+| `application.messaging.notifications.*` | Exchange, queue and routing key used for RabbitMQ-based notification fan-out. |
 | `spring.datasource.*` | Database connectivity settings (PostgreSQL by default). |
 | `spring.data.redis.*` | Redis connection info for caching / distributed tokens (optional). |
+| `spring.rabbitmq.*` | RabbitMQ host, port and credentials shared with the notification microservice. |
 
 > A dedicated `application-test.yaml` configures an in-memory H2 database and a deterministic JWT secret for test runs.
 
