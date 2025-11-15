@@ -1,12 +1,6 @@
 package com.autumnus.notificationservice.modules.notifications.entity;
 
-import com.autumnus.notificationservice.modules.notifications.entity.Notification.NotificationStatus;
-import com.autumnus.notificationservice.modules.notifications.entity.Notification.NotificationType;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -34,10 +28,7 @@ public class Notification extends BaseEntity {
     private NotificationStatus status = NotificationStatus.UNREAD;
 
     public enum NotificationType {
-        INFO,
-        WARNING,
-        SUCCESS,
-        ERROR
+        SUCCESS, INFO, WARNING, ERROR
     }
 
     public enum NotificationStatus {

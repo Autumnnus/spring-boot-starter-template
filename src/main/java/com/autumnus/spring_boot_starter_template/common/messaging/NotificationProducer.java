@@ -16,6 +16,7 @@ public class NotificationProducer {
     private final NotificationMessagingProperties properties;
 
     public void send(NotificationMessage message) {
+        System.out.println("NotificationProducer send " + message);
         if (message == null) {
             log.warn("Skipping null notification message");
             return;

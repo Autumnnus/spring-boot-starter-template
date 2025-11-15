@@ -8,16 +8,11 @@ import com.autumnus.spring_boot_starter_template.common.messaging.NotificationPr
 import com.autumnus.spring_boot_starter_template.common.messaging.dto.NotificationMessage;
 import com.autumnus.spring_boot_starter_template.common.storage.dto.MediaAsset;
 import com.autumnus.spring_boot_starter_template.common.storage.exception.MediaStorageException;
-import com.autumnus.spring_boot_starter_template.common.storage.exception.MediaValidationException;
 import com.autumnus.spring_boot_starter_template.common.storage.model.MediaKind;
 import com.autumnus.spring_boot_starter_template.common.storage.model.MediaManifest;
 import com.autumnus.spring_boot_starter_template.common.storage.model.MediaUpload;
 import com.autumnus.spring_boot_starter_template.common.storage.service.MediaStorageService;
-import com.autumnus.spring_boot_starter_template.modules.users.dto.ProfilePhotoUploadCommand;
-import com.autumnus.spring_boot_starter_template.modules.users.dto.UpdateProfileRequest;
-import com.autumnus.spring_boot_starter_template.modules.users.dto.UserCreateRequest;
-import com.autumnus.spring_boot_starter_template.modules.users.dto.UserResponse;
-import com.autumnus.spring_boot_starter_template.modules.users.dto.UserUpdateRequest;
+import com.autumnus.spring_boot_starter_template.modules.users.dto.*;
 import com.autumnus.spring_boot_starter_template.modules.users.entity.Role;
 import com.autumnus.spring_boot_starter_template.modules.users.entity.RoleName;
 import com.autumnus.spring_boot_starter_template.modules.users.entity.User;
@@ -105,12 +100,18 @@ public class UserServiceImpl implements UserService {
         final User saved = userRepository.save(user);
         AuditContextHolder.setEntityId(saved.getId().toString());
         AuditContextHolder.setNewValue(userMapper.toResponse(saved, userMapper.extractRoleNames(saved)));
-        notificationProducer.send(NotificationMessage.builder()
-                .userId(saved.getId())
-                .title("Welcome to Autumnus")
-                .message("Hi %s, your account is ready to use.".formatted(saved.getUsername()))
-                .type(NotificationMessage.NotificationType.SUCCESS)
-                .build());
+//        notificationProducer.send(NotificationMessage.builder()
+//                .userId(saved.getId())
+//                .title("Welcome to Autumnus")
+//                .message("Hi %s, your account is ready to use.".formatted(saved.getUsername()))
+//                .type(NotificationMessage.NotificationType.SUCCESS)
+//                .build());
+        notificationProducer.send(new NotificationMessage(
+                saved.getId(),
+                "Welcome to Autumnus",
+                "Hi %s, your account is ready to use.".formatted(saved.getUsername()),
+                NotificationMessage.NotificationType.SUCCESS
+        ));
         return userMapper.toResponse(saved, userMapper.extractRoleNames(saved));
     }
 

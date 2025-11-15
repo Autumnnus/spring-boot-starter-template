@@ -16,6 +16,7 @@ public class NotificationMessageListener {
 
     @RabbitListener(queues = "${application.messaging.notifications.queue}")
     public void onMessage(NotificationMessage message) {
+        System.out.println("onMessage " + message);
         if (message == null) {
             log.warn("Received null notification message");
             return;
