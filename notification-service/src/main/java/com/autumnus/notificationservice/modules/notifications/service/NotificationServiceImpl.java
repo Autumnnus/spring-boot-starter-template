@@ -32,12 +32,16 @@ public class NotificationServiceImpl implements NotificationService {
         notification.setUserId(message.userId());
         notification.setTitle(message.title());
         notification.setMessage(message.message());
-        notification.setType(message.type());
+        notification.setType(mapNotificationType(message.type()));
         final Notification saved = notificationRepository.save(notification);
         System.out.println("Persisted notification {} for user {}" + saved);
         log.info("Persisted notification {} for user {}", saved.getId(), saved.getUserId());
         webSocketPublisher.publish(saved);
         return saved;
+    }
+
+    private Notification.NotificationType mapNotificationType(NotificationMessage.NotificationType type) {
+        return Notification.NotificationType.valueOf(type.name());
     }
 
     @Override
