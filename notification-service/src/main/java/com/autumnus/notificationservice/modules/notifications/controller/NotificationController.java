@@ -9,11 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -42,6 +38,7 @@ public class NotificationController {
 
     private Long resolveUserId() {
         final String userId = RequestContextHolder.getContext().getUserId();
+        System.out.println("User Id" + userId);
         if (userId == null) {
             throw new IllegalStateException("Missing X-User-Id header");
         }

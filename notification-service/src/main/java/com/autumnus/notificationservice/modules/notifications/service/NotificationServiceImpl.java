@@ -27,12 +27,14 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     public Notification save(NotificationMessage message) {
+        System.out.println("save message: " + message);
         final Notification notification = new Notification();
         notification.setUserId(message.userId());
         notification.setTitle(message.title());
         notification.setMessage(message.message());
         notification.setType(message.type());
         final Notification saved = notificationRepository.save(notification);
+        System.out.println("Persisted notification {} for user {}" + saved);
         log.info("Persisted notification {} for user {}", saved.getId(), saved.getUserId());
         webSocketPublisher.publish(saved);
         return saved;
@@ -41,6 +43,7 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     @Transactional(readOnly = true)
     public List<NotificationResponse> getUserNotifications(Long userId) {
+        System.out.println("Get User Notifications User ID: " + userId);
         return notificationRepository.findAllByUserIdOrderByCreatedAtDesc(userId).stream()
                 .map(notificationMapper::toResponse)
                 .toList();
@@ -48,6 +51,7 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     public void markAsRead(Long id, Long userId) {
+        System.out.println("Mark as Read User ID: " + userId);
         final Notification notification = notificationRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Notification not found"));
         if (!notification.getUserId().equals(userId)) {

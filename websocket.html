@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>WS Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+  </head>
+  <body>
+    <h2>WebSocket Test</h2>
+    <button onclick="connect()">Bağlan</button>
+    <button onclick="disconnect()">Kes</button>
+    <div id="messages"></div>
+
+    <script>
+      let stompClient = null;
+
+      function connect() {
+        const socket = new SockJS("http://localhost:8081/ws");
+        stompClient = Stomp.over(socket);
+
+        stompClient.connect({}, (frame) => {
+          log("✅ Bağlandı");
+
+          stompClient.subscribe("/topic/notifications", (message) => {
+            log("📬 " + message.body);
+          });
+        });
+      }
+
+      function disconnect() {
+        if (stompClient) stompClient.disconnect();
+        log("❌ Bağlantı kesildi");
+      }
+
+      function log(msg) {
+        document.getElementById("messages").innerHTML += "<p>" + msg + "</p>";
+      }
+    </script>
+  </body>
+</html>
