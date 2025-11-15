@@ -7,11 +7,11 @@ services:
       - "POSTGRES_USER=${POSTGRES_USER}"
       - "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}"
     ports:
-      - "${POSTGRES_PORT}:5432"
+      - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U spring-boot-starter-user -d postgres" ]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -43,6 +43,8 @@ services:
       interval: 10s
       timeout: 10s
       retries: 10
+    volumes:
+      - rabbitmqdata:/var/lib/rabbitmq
 
   redis-insight:
     image: redis/redisinsight:latest
@@ -168,6 +170,10 @@ services:
   notification-service:
     build: ./notification-service
     container_name: spring-boot-notification-service
+    develop:
+      watch:
+        - action: rebuild
+          path: ./notification-service/src
     environment:
       - SPRING_MAIN_ALLOW_BEAN_DEFINITION_OVERRIDING=true
       - POSTGRES_URI=jdbc:postgresql://postgres
@@ -192,6 +198,7 @@ volumes:
   redisdata:
   redis-insight:
   esdata:
+  rabbitmqdata:
 
 networks:
   elastic:

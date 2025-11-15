@@ -7,7 +7,7 @@ spring:
   application:
     name: notification-service
   datasource:
-    url: ${POSTGRES_URI}:${POSTGRES_PORT}/${POSTGRES_DB}
+    url: jdbc:postgresql://postgres:5432/postgres
     username: ${POSTGRES_USER}
     password: ${POSTGRES_PASSWORD}
   jpa:
@@ -32,8 +32,16 @@ application:
       queue: notifications.queue
       routing-key: notifications.key
 
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+
 management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,openapi,swaggerui
