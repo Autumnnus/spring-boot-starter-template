@@ -7,11 +7,11 @@ services:
       - "POSTGRES_USER=${POSTGRES_USER}"
       - "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}"
     ports:
-      - "${POSTGRES_PORT}:5432"
+      - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U spring-boot-starter-user -d postgres"]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -24,10 +24,27 @@ services:
     volumes:
       - redisdata:/data
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+      test: [ "CMD-SHELL", "redis-cli ping | grep PONG" ]
       interval: 5s
       timeout: 5s
       retries: 10
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: spring-boot-starter-rabbitmq
+    environment:
+      - "RABBITMQ_DEFAULT_USER=${RABBITMQ_USERNAME}"
+      - "RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD}"
+    ports:
+      - "${RABBITMQ_PORT}:5672"
+      - "15672:15672"
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "check_running" ]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+    volumes:
+      - rabbitmqdata:/var/lib/rabbitmq
 
   redis-insight:
     image: redis/redisinsight:latest
@@ -113,7 +130,7 @@ services:
       - elastic
     healthcheck:
       test:
-        ["CMD-SHELL", "curl -s -I http://localhost:5601 | grep -q 'HTTP/1.1'"]
+        [ "CMD-SHELL", "curl -s -I http://localhost:5601 | grep -q 'HTTP/1.1'" ]
       interval: 10s
       timeout: 10s
       retries: 120
@@ -121,8 +138,8 @@ services:
   apm-server:
     image: docker.elastic.co/apm/apm-server:8.15.3
     container_name: spring-boot-starter-apm-server
-    cap_add: ["CHOWN", "DAC_OVERRIDE", "SETGID", "SETUID"]
-    cap_drop: ["ALL"]
+    cap_add: [ "CHOWN", "DAC_OVERRIDE", "SETGID", "SETUID" ]
+    cap_drop: [ "ALL" ]
     command: >
       apm-server -e
         -E apm-server.rum.enabled=true
@@ -150,11 +167,38 @@ services:
     #   timeout: 10s
     #   retries: 120
 
+  notification-service:
+    build: ./notification-service
+    container_name: spring-boot-notification-service
+    develop:
+      watch:
+        - action: rebuild
+          path: ./notification-service/src
+    environment:
+      - SPRING_MAIN_ALLOW_BEAN_DEFINITION_OVERRIDING=true
+      - POSTGRES_URI=jdbc:postgresql://postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=${RABBITMQ_USERNAME}
+      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
+    ports:
+      - "8081:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
 volumes:
   pgdata:
   redisdata:
   redis-insight:
   esdata:
+  rabbitmqdata:
 
 networks:
   elastic:
