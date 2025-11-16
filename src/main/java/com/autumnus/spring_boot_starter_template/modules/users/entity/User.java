@@ -13,17 +13,21 @@ import java.util.Set;
 @Table(
         name = "users",
         indexes = {
-                @Index(name = "idx_users_email", columnList = "email", unique = true)
+                @Index(name = "idx_users_email", columnList = "email", unique = true),
+                @Index(name = "idx_users_keycloak_id", columnList = "keycloak_id", unique = true)
         }
 )
 @Getter
 @Setter
 public class User extends BaseEntity {
 
+    @Column(name = "keycloak_id", unique = true)
+    private String keycloakId;
+
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(name = "password_hash", nullable = false)
+    @Column(name = "password_hash")
     private String passwordHash;
 
     @Column(nullable = false, unique = true)

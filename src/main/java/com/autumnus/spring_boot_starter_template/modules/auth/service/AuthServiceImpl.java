@@ -1,11 +1,14 @@
 package com.autumnus.spring_boot_starter_template.modules.auth.service;
 
+import com.autumnus.spring_boot_starter_template.common.config.KeycloakProperties;
 import com.autumnus.spring_boot_starter_template.common.config.SecurityProperties;
 import com.autumnus.spring_boot_starter_template.common.logging.annotation.AuditAction;
 import com.autumnus.spring_boot_starter_template.common.logging.annotation.Auditable;
 import com.autumnus.spring_boot_starter_template.common.logging.annotation.NoLog;
 import com.autumnus.spring_boot_starter_template.common.logging.context.AuditContextHolder;
 import com.autumnus.spring_boot_starter_template.common.security.JwtTokenProvider;
+import com.autumnus.spring_boot_starter_template.common.security.KeycloakService;
+import com.autumnus.spring_boot_starter_template.common.security.KeycloakTokenService;
 import com.autumnus.spring_boot_starter_template.common.security.UnauthorizedException;
 import com.autumnus.spring_boot_starter_template.modules.auth.dto.*;
 import com.autumnus.spring_boot_starter_template.modules.users.dto.UserCreateRequest;
@@ -17,6 +20,8 @@ import com.autumnus.spring_boot_starter_template.modules.users.repository.UserRe
 import com.autumnus.spring_boot_starter_template.modules.users.service.UserDetailsServiceImpl;
 import com.autumnus.spring_boot_starter_template.modules.users.service.UserService;
 import com.autumnus.spring_boot_starter_template.modules.users.service.UserServiceValidationException;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -26,11 +31,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Collections;
 import java.util.EnumSet;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
 @Transactional
+@Slf4j
 public class AuthServiceImpl implements AuthService {
 
     private final UserService userService;
@@ -43,6 +51,13 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final SecurityProperties securityProperties;
     private final PasswordEncoder passwordEncoder;
+    private final KeycloakProperties keycloakProperties;
+
+    @Autowired(required = false)
+    private KeycloakService keycloakService;
+
+    @Autowired(required = false)
+    private KeycloakTokenService keycloakTokenService;
 
     public AuthServiceImpl(
             UserService userService,
@@ -54,7 +69,8 @@ public class AuthServiceImpl implements AuthService {
             EmailVerificationTokenRepository emailVerificationTokenRepository,
             PasswordResetTokenRepository passwordResetTokenRepository,
             SecurityProperties securityProperties,
-            PasswordEncoder passwordEncoder
+            PasswordEncoder passwordEncoder,
+            KeycloakProperties keycloakProperties
     ) {
         this.userService = userService;
         this.userRepository = userRepository;
@@ -66,10 +82,23 @@ public class AuthServiceImpl implements AuthService {
         this.passwordResetTokenRepository = passwordResetTokenRepository;
         this.securityProperties = securityProperties;
         this.passwordEncoder = passwordEncoder;
+        this.keycloakProperties = keycloakProperties;
+    }
+
+    private boolean isKeycloakEnabled() {
+        return keycloakProperties.isEnabled() && keycloakService != null && keycloakTokenService != null;
     }
 
     @Override
     public UserResponse register(RegisterRequest request) {
+        if (isKeycloakEnabled()) {
+            return registerWithKeycloak(request);
+        } else {
+            return registerLegacy(request);
+        }
+    }
+
+    private UserResponse registerLegacy(RegisterRequest request) {
         final UserResponse response = userService.createUser(UserCreateRequest.builder()
                 .email(request.email())
                 .username(request.username())
@@ -81,9 +110,60 @@ public class AuthServiceImpl implements AuthService {
         return response;
     }
 
+    private UserResponse registerWithKeycloak(RegisterRequest request) {
+        // Create user in Keycloak first
+        log.info("Creating user in Keycloak: {}", request.email());
+        String keycloakId = keycloakService.createUser(
+                request.username(),
+                request.email(),
+                request.password(),
+                null, // firstName
+                null  // lastName
+        );
+
+        // Assign default roles in Keycloak
+        keycloakService.assignRolesToUser(keycloakId, Collections.singletonList("USER"));
+
+        // Create user in local database with Keycloak ID
+        log.info("Creating user in local database with Keycloak ID: {}", keycloakId);
+        User user = new User();
+        user.setKeycloakId(keycloakId);
+        user.setEmail(request.email());
+        user.setUsername(request.username());
+        user.setActive(true);
+        user.setEmailVerified(false);
+        user.setPasswordHash(null); // Password managed by Keycloak
+        user.setPasswordChangedAt(Instant.now());
+
+        user = userRepository.save(user);
+
+        log.info("User registered successfully with Keycloak ID: {}", keycloakId);
+
+        // Return user response
+        return UserResponse.builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .username(user.getUsername())
+                .active(user.isActive())
+                .emailVerified(user.isEmailVerified())
+                .lastLoginAt(user.getLastLoginAt())
+                .createdAt(user.getCreatedAt())
+                .updatedAt(user.getUpdatedAt())
+                .roles(EnumSet.of(RoleName.USER))
+                .build();
+    }
+
     @Override
     @Auditable(entityType = "USER", action = AuditAction.LOGIN, entityIdExpression = "#request.email")
     public TokenResponse login(LoginRequest request) {
+        if (isKeycloakEnabled()) {
+            return loginWithKeycloak(request);
+        } else {
+            return loginLegacy(request);
+        }
+    }
+
+    private TokenResponse loginLegacy(LoginRequest request) {
         final User user = userService.findEntityByEmail(request.email())
                 .orElseThrow(() -> new UnauthorizedException("Invalid credentials"));
         AuditContextHolder.setEntityId(user.getId().toString());
@@ -110,8 +190,48 @@ public class AuthServiceImpl implements AuthService {
                 .build();
     }
 
+    private TokenResponse loginWithKeycloak(LoginRequest request) {
+        // Find user in local database
+        final User user = userService.findEntityByEmail(request.email())
+                .orElseThrow(() -> new UnauthorizedException("Invalid credentials"));
+
+        AuditContextHolder.setEntityId(user.getId().toString());
+
+        try {
+            // Obtain token from Keycloak
+            log.info("Obtaining token from Keycloak for user: {}", request.email());
+            Map<String, Object> tokenResponse = keycloakTokenService.obtainToken(request.email(), request.password());
+
+            // Update user last login
+            user.setLastLoginAt(Instant.now());
+            userRepository.save(user);
+
+            log.info("Login successful for user: {}", request.email());
+
+            // Return Keycloak tokens
+            return TokenResponse.builder()
+                    .accessToken((String) tokenResponse.get("access_token"))
+                    .accessTokenExpiresAt(Instant.now().plusSeconds((Integer) tokenResponse.get("expires_in")))
+                    .refreshToken((String) tokenResponse.get("refresh_token"))
+                    .refreshTokenExpiresAt(Instant.now().plusSeconds((Integer) tokenResponse.get("refresh_expires_in")))
+                    .tokenType((String) tokenResponse.get("token_type"))
+                    .build();
+        } catch (Exception ex) {
+            log.error("Login failed for user: {}", request.email(), ex);
+            throw new UnauthorizedException("Invalid credentials");
+        }
+    }
+
     @Override
     public TokenResponse refreshToken(RefreshTokenRequest request) {
+        if (isKeycloakEnabled()) {
+            return refreshTokenWithKeycloak(request);
+        } else {
+            return refreshTokenLegacy(request);
+        }
+    }
+
+    private TokenResponse refreshTokenLegacy(RefreshTokenRequest request) {
         final RefreshToken refreshToken = tokenService.validateRefreshToken(request.refreshToken());
         final Long userId = jwtTokenProvider.extractUserId(refreshToken.getToken());
         final User user = userService.findEntityById(userId);
@@ -128,9 +248,45 @@ public class AuthServiceImpl implements AuthService {
                 .build();
     }
 
+    private TokenResponse refreshTokenWithKeycloak(RefreshTokenRequest request) {
+        try {
+            log.info("Refreshing token with Keycloak");
+            Map<String, Object> tokenResponse = keycloakTokenService.refreshToken(request.refreshToken());
+
+            return TokenResponse.builder()
+                    .accessToken((String) tokenResponse.get("access_token"))
+                    .accessTokenExpiresAt(Instant.now().plusSeconds((Integer) tokenResponse.get("expires_in")))
+                    .refreshToken((String) tokenResponse.get("refresh_token"))
+                    .refreshTokenExpiresAt(Instant.now().plusSeconds((Integer) tokenResponse.get("refresh_expires_in")))
+                    .tokenType((String) tokenResponse.get("token_type"))
+                    .build();
+        } catch (Exception ex) {
+            log.error("Token refresh failed", ex);
+            throw new UnauthorizedException("Invalid refresh token");
+        }
+    }
+
     @Override
     public void logout(RefreshTokenRequest request) {
+        if (isKeycloakEnabled()) {
+            logoutWithKeycloak(request);
+        } else {
+            logoutLegacy(request);
+        }
+    }
+
+    private void logoutLegacy(RefreshTokenRequest request) {
         tokenService.revokeToken(request.refreshToken());
+    }
+
+    private void logoutWithKeycloak(RefreshTokenRequest request) {
+        try {
+            log.info("Logging out from Keycloak");
+            keycloakTokenService.logout(request.refreshToken());
+        } catch (Exception ex) {
+            log.error("Logout failed", ex);
+            // Don't throw exception on logout failure
+        }
     }
 
     @Override
