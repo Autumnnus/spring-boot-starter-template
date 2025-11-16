@@ -2,7 +2,7 @@ package com.autumnus.notificationservice.modules.notifications.service;
 
 import com.autumnus.notificationservice.modules.notifications.dto.NotificationResponse;
 import com.autumnus.notificationservice.modules.notifications.entity.Notification;
-import com.autumnus.notificationservice.modules.notifications.messaging.NotificationMessage;
+import com.autumnus.notificationservice.modules.notifications.dto.NotificationMessage;
 
 import java.util.List;
 

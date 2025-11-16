@@ -1,6 +1,6 @@
 package com.autumnus.notificationservice.modules.notifications.listener;
 
-import com.autumnus.notificationservice.modules.notifications.messaging.NotificationMessage;
+import com.autumnus.notificationservice.modules.notifications.dto.NotificationMessage;
 import com.autumnus.notificationservice.modules.notifications.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,7 +21,7 @@ public class NotificationMessageListener {
             log.warn("Received null notification message");
             return;
         }
-        log.info("Received notification for user {} with title {}", message.userId(), message.title());
+        log.info("Received notification for user {} with title {}", message.getUserId(), message.getTitle());
         notificationService.save(message);
     }
 }

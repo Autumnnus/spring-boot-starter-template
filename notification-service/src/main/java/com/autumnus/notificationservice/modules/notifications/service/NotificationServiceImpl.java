@@ -5,7 +5,7 @@ import com.autumnus.notificationservice.modules.notifications.entity.Notificatio
 import com.autumnus.notificationservice.modules.notifications.entity.Notification.NotificationStatus;
 import com.autumnus.notificationservice.modules.notifications.listener.NotificationWebSocketPublisher;
 import com.autumnus.notificationservice.modules.notifications.mapper.NotificationMapper;
-import com.autumnus.notificationservice.modules.notifications.messaging.NotificationMessage;
+import com.autumnus.notificationservice.modules.notifications.dto.NotificationMessage;
 import com.autumnus.notificationservice.modules.notifications.repository.NotificationRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -28,11 +28,7 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     public Notification save(NotificationMessage message) {
         System.out.println("save message: " + message);
-        final Notification notification = new Notification();
-        notification.setUserId(message.userId());
-        notification.setTitle(message.title());
-        notification.setMessage(message.message());
-        notification.setType(message.type());
+        final Notification notification = notificationMapper.toEntity(message);
         final Notification saved = notificationRepository.save(notification);
         System.out.println("Persisted notification {} for user {}" + saved);
         log.info("Persisted notification {} for user {}", saved.getId(), saved.getUserId());
