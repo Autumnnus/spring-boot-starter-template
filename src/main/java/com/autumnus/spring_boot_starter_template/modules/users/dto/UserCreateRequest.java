@@ -7,6 +7,11 @@ import lombok.Builder;
 
 import java.util.Set;
 
+/**
+ * User creation request DTO.
+ * Note: Password and roles are deprecated as authentication is handled by Keycloak.
+ * This DTO is kept for backward compatibility and admin operations.
+ */
 @Builder
 public record UserCreateRequest(
         @Email(message = "must be a valid email")
@@ -16,9 +21,10 @@ public record UserCreateRequest(
         @NotBlank(message = "username is required")
         String username,
 
-        @NotBlank(message = "password is required")
+        @Deprecated
         String password,
 
+        @Deprecated
         Set<RoleName> roles,
 
         Boolean active

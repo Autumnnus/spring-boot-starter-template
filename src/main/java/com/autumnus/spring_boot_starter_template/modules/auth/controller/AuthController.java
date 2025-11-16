@@ -12,7 +12,14 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * Legacy authentication controller - DEPRECATED
+ * Use KeycloakAuthController and Keycloak OAuth2 flows instead.
+ *
+ * @deprecated Authentication is now handled by Keycloak
+ */
 @RestController
+@Deprecated
 public class AuthController implements AuthApi {
 
     private final AuthService authService;

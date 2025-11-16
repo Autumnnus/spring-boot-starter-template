@@ -11,6 +11,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.util.Optional;
+
+/**
+ * User service for managing application-specific user data.
+ * Authentication and authorization is handled by Keycloak.
+ */
 public interface UserService {
 
     Page<UserResponse> listUsers(Pageable pageable, RoleName role, Boolean active);
@@ -38,10 +43,4 @@ public interface UserService {
     void activateUser(Long userId);
 
     void deactivateUser(Long userId);
-
-    void checkAccountLocked(User user);
-
-    void incrementFailedAttempts(User user);
-
-    void resetFailedAttempts(User user);
 }
