@@ -1,6 +1,5 @@
 package com.autumnus.spring_boot_starter_template.common.security;
 
-import com.autumnus.spring_boot_starter_template.modules.users.service.UserPrincipal;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -9,42 +8,38 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 
 import java.util.Optional;
 
+/**
+ * Security utilities for Keycloak-based authentication.
+ * Provides helper methods for accessing user information from JWT tokens.
+ */
 public final class SecurityUtils {
 
     private SecurityUtils() {
     }
 
     /**
-     * Get current user ID from security context.
-     * Supports both legacy UserPrincipal and Keycloak JWT authentication.
+     * Get current user ID from Keycloak JWT token.
+     * Attempts to extract user_id claim from the JWT.
      */
     public static Optional<Long> getCurrentUserId() {
         final Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || authentication.getPrincipal() == null) {
+        if (authentication == null || !(authentication instanceof JwtAuthenticationToken jwtAuth)) {
             return Optional.empty();
         }
 
-        final Object principal = authentication.getPrincipal();
+        Jwt jwt = jwtAuth.getToken();
+        Object userIdClaim = jwt.getClaim("user_id");
 
-        // Handle Keycloak JWT authentication
-        if (authentication instanceof JwtAuthenticationToken jwtAuth) {
-            Jwt jwt = jwtAuth.getToken();
-            Object userIdClaim = jwt.getClaim("user_id");
-            if (userIdClaim instanceof Long userId) {
-                return Optional.of(userId);
-            }
-            if (userIdClaim instanceof String userIdStr) {
-                try {
-                    return Optional.of(Long.parseLong(userIdStr));
-                } catch (NumberFormatException e) {
-                    return Optional.empty();
-                }
-            }
+        if (userIdClaim instanceof Long userId) {
+            return Optional.of(userId);
         }
 
-        // Handle legacy UserPrincipal authentication
-        if (principal instanceof UserPrincipal userPrincipal) {
-            return Optional.ofNullable(userPrincipal.getUserId());
+        if (userIdClaim instanceof String userIdStr) {
+            try {
+                return Optional.of(Long.parseLong(userIdStr));
+            } catch (NumberFormatException e) {
+                return Optional.empty();
+            }
         }
 
         return Optional.empty();
@@ -63,7 +58,7 @@ public final class SecurityUtils {
     }
 
     /**
-     * Get current user email from security context
+     * Get current user email from Keycloak JWT
      */
     public static Optional<String> getCurrentUserEmail() {
         final Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -74,6 +69,10 @@ public final class SecurityUtils {
         return Optional.empty();
     }
 
+    /**
+     * Check if current user has a specific role.
+     * Supports both ROLE_ prefixed and non-prefixed role names.
+     */
     public static boolean hasRole(String role) {
         final Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null) {
