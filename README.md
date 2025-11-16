@@ -9,9 +9,9 @@ idempotent writes, RBAC/ABAC authorisation, centralised error handling, and obse
 - **Modular architecture** with domain-specific modules under `modules/` (e.g. `users`) and cross-cutting concerns in
   `common/`.
 - **Shared base models** providing numeric ids, audit timestamps, and DTO metadata via `BaseEntity`/`BaseDto`.
-- **JWT based authentication** (`Bearer` tokens) with pluggable secret via configuration.
+- **Keycloak-based authentication** with OAuth2/OpenID Connect support, including Google login integration.
 - **RBAC + ABAC**: Role checks are enforced via Spring Security annotations while resource ownership checks are
-  delegated to dedicated guards.
+  delegated to dedicated guards. Roles are managed in Keycloak.
 - **Idempotent write endpoints** using the `@Idempotent` annotation and the `idempotency_keys` table.
 - **Rate limiting** built on Bucket4j with user/IP/device granularity and configurable quotas.
 - **Global error contract** that always returns a deterministic payload containing `code`, `message`, `traceId`, and
@@ -30,6 +30,7 @@ idempotent writes, RBAC/ABAC authorisation, centralised error handling, and obse
 | Service                          | URL                                                                                        | Description                   |
 |----------------------------------|--------------------------------------------------------------------------------------------|-------------------------------|
 | **Swagger (Gateway)**            | [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html) | API dokümantasyonu            |
+| **Keycloak Admin Console**       | [http://localhost:9090](http://localhost:9090)                                             | Keycloak yönetim paneli       |
 | **Redis Insight**                | [http://localhost:5540](http://localhost:5540)                                             | Redis yönetim arayüzü         |
 | **RabbitMQ Management**          | [http://localhost:15672](http://localhost:15672)                                           | Queue Management              |
 | **Notification Service Swagger** | [http://localhost:8081/swagger-ui/index.html](http://localhost:8081/swagger-ui/index.html) | Notification microservice API |
@@ -133,8 +134,11 @@ YAML files.
 
 | Property                                           | Description                                                                     |
 |----------------------------------------------------|---------------------------------------------------------------------------------|
-| `application.security.jwt-secret`                  | HMAC secret for signing JWT access tokens (min 32 chars).                       |
-| `application.security.access-token-ttl`            | Duration (ISO-8601) for access token lifetime.                                  |
+| `application.keycloak.auth-server-url`             | Keycloak server URL (e.g., `http://localhost:9090`).                            |
+| `application.keycloak.realm`                       | Keycloak realm name.                                                            |
+| `application.keycloak.client-id`                   | OAuth2 client ID configured in Keycloak.                                        |
+| `application.keycloak.client-secret`               | OAuth2 client secret from Keycloak.                                             |
+| `application.security.jwt-secret`                  | Legacy JWT secret (deprecated, kept for backward compatibility).                |
 | `application.security.public-endpoints`            | Comma-separated list of patterns that bypass authentication.                    |
 | `application.rate-limit.capacity`                  | Maximum number of requests permitted per refill period.                         |
 | `application.rate-limit.refill-period`             | ISO-8601 duration describing the bucket refill cadence.                         |
@@ -205,18 +209,52 @@ Swagger documents both administrative and self-service flows:
 Once authorised in Swagger UI, select the self-service operations to update your profile—the backend extracts immutable
 identifiers directly from the JWT payload.
 
-## 🔐 Security Model
+## 🔐 Security Model (Keycloak)
 
-- **Authentication:** Incoming requests must carry a `Bearer <token>` header containing a JWT generated with the
-  configured secret.
-- **Token payload:** Access and refresh tokens embed the immutable user id, email, username, and role claims so clients
-  never need to submit those identifiers explicitly.
-- **Authorisation:**
-    - RBAC checks rely on Spring Security's `@PreAuthorize`/`@PostAuthorize` annotations (e.g. `hasRole('ADMIN')`).
-    - ABAC checks leverage helper beans such as `OwnershipGuard` for owner-scoped access (
-      `@ownershipGuard.isOwner(#id)`).
-- **Context propagation:** The authenticated user id is stored in the `RequestContext` and reused by rate limiting and
-  auditing layers.
+### Authentication Flow
+
+The application uses **Keycloak** for centralized authentication and authorization:
+
+- **OAuth2/OpenID Connect:** Users authenticate through Keycloak using standard OAuth2 flows
+- **JWT Tokens:** Keycloak issues JWT tokens that are validated by the Spring Boot application
+- **Google OAuth2:** Users can log in using their Google accounts through Keycloak's identity provider integration
+- **Bearer Authentication:** API requests must carry a `Bearer <token>` header with a valid Keycloak JWT
+
+### Authorization
+
+- **RBAC (Role-Based Access Control):**
+    - Roles are managed in Keycloak (USER, ADMIN, MODERATOR)
+    - Spring Security enforces role checks via `@PreAuthorize` annotations (e.g., `hasRole('ADMIN')`)
+    - Keycloak JWT tokens include realm and resource roles
+- **ABAC (Attribute-Based Access Control):**
+    - Resource ownership checks use helper beans like `OwnershipGuard`
+    - Fine-grained permissions can be configured in Keycloak
+- **Context Propagation:** User information from Keycloak JWT is automatically synchronized with local user records
+
+### Keycloak Setup
+
+1. **Admin Console:** Access Keycloak at [http://localhost:9090](http://localhost:9090)
+    - Default credentials: `admin` / `admin` (configurable in `.env`)
+2. **Realm:** `spring-boot-app` (auto-imported on startup)
+3. **Client:** `spring-boot-client` (pre-configured for the application)
+4. **Roles:** USER, ADMIN, MODERATOR (pre-configured)
+
+### Google OAuth2 Setup
+
+To enable Google login:
+
+1. Create OAuth2 credentials in [Google Cloud Console](https://console.cloud.google.com/)
+2. Configure authorized redirect URI: `http://localhost:9090/realms/spring-boot-app/broker/google/endpoint`
+3. In Keycloak Admin Console:
+    - Navigate to Identity Providers → Google
+    - Add your Google Client ID and Client Secret
+    - Save and test the integration
+
+### User Management
+
+- **Primary Storage:** Users are stored and managed in Keycloak
+- **Local Sync:** Application-specific user data (profile photos, preferences) is synchronized to the local database
+- **User Lookup:** Users are identified by their Keycloak User ID (sub claim in JWT)
 
 ## 🔁 Idempotency
 
@@ -261,19 +299,39 @@ the UI's authorise dialog.
 
 ## 🚀 Getting Started
 
-1. **Install dependencies:** Java 17+, Docker (optional for Postgres/Redis).
-2. **Configure environment:** Update `application.yaml` (or provide env vars) with real database credentials and a
-   strong JWT secret.
-3. **Run database/redis (optional):**
+1. **Install dependencies:** Java 17+, Docker & Docker Compose
+2. **Configure environment:**
+   ```bash
+   cp .env.example .env
+   # Edit .env file with your configurations
+   # Important: Set KEYCLOAK_CLIENT_SECRET to a secure value
+   ```
+3. **Start all services:**
    ```bash
    docker compose up -d
    ```
-4. **Launch the application:**
-   ```bash
-   ./mvnw spring-boot:run
-   ```
-5. **Access Swagger UI:**
-   Open [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html).
+   This will start:
+   - PostgreSQL (main database + Keycloak database)
+   - Keycloak (authentication server)
+   - Redis (caching)
+   - RabbitMQ (messaging)
+   - Elasticsearch, Kibana, APM (observability stack)
+   - Spring Boot application
+   - Notification service
+
+4. **Access Keycloak Admin Console:**
+   - URL: [http://localhost:9090](http://localhost:9090)
+   - Login with credentials from `.env` (default: admin/admin)
+   - Verify that `spring-boot-app` realm is imported
+
+5. **Configure Google OAuth2 (Optional):**
+   - Get OAuth2 credentials from Google Cloud Console
+   - In Keycloak: Identity Providers → Google → Add credentials
+   - Set redirect URI: `http://localhost:9090/realms/spring-boot-app/broker/google/endpoint`
+
+6. **Access Application:**
+   - Swagger UI: [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)
+   - Login: Click "Authorize" and use Keycloak login or create a new account
 
 ### Example Request Flow
 
