@@ -5,7 +5,6 @@ import com.autumnus.spring_boot_starter_template.modules.users.dto.UpdateProfile
 import com.autumnus.spring_boot_starter_template.modules.users.dto.UserCreateRequest;
 import com.autumnus.spring_boot_starter_template.modules.users.dto.UserResponse;
 import com.autumnus.spring_boot_starter_template.modules.users.dto.UserUpdateRequest;
-import com.autumnus.spring_boot_starter_template.modules.users.entity.RoleName;
 import com.autumnus.spring_boot_starter_template.modules.users.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -13,7 +12,7 @@ import org.springframework.data.domain.Pageable;
 import java.util.Optional;
 public interface UserService {
 
-    Page<UserResponse> listUsers(Pageable pageable, RoleName role, Boolean active);
+    Page<UserResponse> listUsers(Pageable pageable, Boolean active);
 
     UserResponse getUser(Long id);
 

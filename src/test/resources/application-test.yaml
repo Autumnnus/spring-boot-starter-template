@@ -13,7 +13,17 @@ spring:
         format_sql: false
   main:
     allow-bean-definition-overriding: true
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8181/realms/test-realm
 
 application:
   security:
-    jwt-secret: test-secret-test-secret-test-secret
+    public-endpoints:
+      - /actuator/**
+      - /swagger-ui/**
+      - /v3/api-docs/**
+      - /api/v1/auth/register
+

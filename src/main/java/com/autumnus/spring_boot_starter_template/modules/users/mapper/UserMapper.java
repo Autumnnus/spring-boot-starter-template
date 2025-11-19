@@ -6,16 +6,13 @@ import com.autumnus.spring_boot_starter_template.common.storage.model.MediaFileD
 import com.autumnus.spring_boot_starter_template.common.storage.model.MediaManifest;
 import com.autumnus.spring_boot_starter_template.modules.users.dto.UserResponse;
 import com.autumnus.spring_boot_starter_template.modules.users.dto.UserUpdateRequest;
-import com.autumnus.spring_boot_starter_template.modules.users.entity.RoleName;
 import com.autumnus.spring_boot_starter_template.modules.users.entity.User;
-import com.autumnus.spring_boot_starter_template.modules.users.entity.UserRoleAssignment;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.util.Set;
 import java.util.stream.Collectors;
 
 @Component
@@ -41,7 +38,7 @@ public class UserMapper {
         }
     }
 
-    public UserResponse toResponse(User user, Set<RoleName> roles) {
+    public UserResponse toResponse(User user) {
         return UserResponse.builder()
                 .id(user.getId())
                 .createdAt(user.getCreatedAt())
@@ -51,21 +48,12 @@ public class UserMapper {
                 .username(user.getUsername())
                 .active(user.isActive())
                 .emailVerified(user.isEmailVerified())
-                .roles(roles)
                 .lastLoginAt(user.getLastLoginAt())
                 .passwordChangedAt(user.getPasswordChangedAt())
                 .failedLoginAttempts(user.getFailedLoginAttempts())
                 .lockedUntil(user.getLockedUntil())
                 .profilePhoto(mapProfilePhoto(user))
                 .build();
-    }
-
-    public Set<RoleName> extractRoleNames(User user) {
-        return user.getRoleAssignments()
-                .stream()
-                .map(UserRoleAssignment::getRole)
-                .map(role -> role.getName())
-                .collect(Collectors.toUnmodifiableSet());
     }
 
     private MediaResourceResponse mapProfilePhoto(User user) {

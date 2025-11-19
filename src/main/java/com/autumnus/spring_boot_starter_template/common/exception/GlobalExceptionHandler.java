@@ -4,7 +4,6 @@ import com.autumnus.spring_boot_starter_template.common.context.RequestContextHo
 import com.autumnus.spring_boot_starter_template.common.storage.exception.MediaStorageException;
 import com.autumnus.spring_boot_starter_template.common.idempotency.IdempotencyKeyConflictException;
 import com.autumnus.spring_boot_starter_template.common.rate_limiting.RateLimitExceededException;
-import com.autumnus.spring_boot_starter_template.common.security.UnauthorizedException;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,11 +28,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(RateLimitExceededException.class)
     public ResponseEntity<ApiError> handleRateLimitExceeded(RateLimitExceededException ex) {
         return buildResponse(ex.getCode(), ex.getMessage(), HttpStatus.TOO_MANY_REQUESTS);
-    }
-
-    @ExceptionHandler(UnauthorizedException.class)
-    public ResponseEntity<ApiError> handleUnauthorized(UnauthorizedException ex) {
-        return buildResponse(ex.getCode(), ex.getMessage(), HttpStatus.UNAUTHORIZED);
     }
 
     @ExceptionHandler(MediaStorageException.class)

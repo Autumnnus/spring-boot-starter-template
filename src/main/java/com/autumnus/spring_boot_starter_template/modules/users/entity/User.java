@@ -6,51 +6,36 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.Instant;
-import java.util.HashSet;
-import java.util.Set;
 
 @Entity
 @Table(
         name = "users",
-        indexes = {
-                @Index(name = "idx_users_email", columnList = "email", unique = true)
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uc_users_email", columnNames = "email"),
+                @UniqueConstraint(name = "uc_users_keycloak_id", columnNames = "keycloakId")
         }
 )
 @Getter
 @Setter
 public class User extends BaseEntity {
 
-    @Column(nullable = false, unique = true)
-    private String email;
-
-    @Column(name = "password_hash", nullable = false)
-    private String passwordHash;
-
-    @Column(nullable = false, unique = true)
-    private String username;
-
-    @Column(name = "is_active", nullable = false)
-    private boolean active = true;
-
-    @Column(name = "is_email_verified", nullable = false)
-    private boolean emailVerified = false;
-
-    private Instant lastLoginAt;
-
-    private Instant passwordChangedAt;
+    @Column(nullable = false)
+    private String keycloakId;
 
     @Column(nullable = false)
-    private Integer failedLoginAttempts = 0;
+    private String email;
 
-    private Instant lockedUntil;
-
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<UserRoleAssignment> roleAssignments = new HashSet<>();
-
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<RefreshToken> refreshTokens = new HashSet<>();
+    @Column(nullable = false)
+    private String username;
 
     @Lob
     @Column(name = "profile_photo_manifest")
     private String profilePhotoManifest;
+
+    private boolean active = true;
+    private boolean emailVerified = false;
+    private Instant lastLoginAt;
+    private Instant passwordChangedAt;
+    private Integer failedLoginAttempts = 0;
+    private Instant lockedUntil;
 }

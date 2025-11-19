@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-public class AuthController implements AuthApi {
+public class AuthController {
 
     private final AuthService authService;
 
@@ -21,60 +21,50 @@ public class AuthController implements AuthApi {
         this.authService = authService;
     }
 
-    @Override
     public ResponseEntity<ApiResponse<UserResponse>> register(@Valid @RequestBody RegisterRequest request) {
         final UserResponse response = authService.register(request);
         final ApiResponse<UserResponse> payload = ApiResponse.ok(RequestContextHolder.getContext().getTraceId(), response);
         return ResponseEntity.status(201).body(payload);
     }
 
-    @Override
     public ResponseEntity<ApiResponse<TokenResponse>> login(@Valid @RequestBody LoginRequest request) {
         final TokenResponse response = authService.login(request);
         final ApiResponse<TokenResponse> payload = ApiResponse.ok(RequestContextHolder.getContext().getTraceId(), response);
         return ResponseEntity.ok(payload);
     }
 
-    @Override
     public ResponseEntity<ApiResponse<TokenResponse>> refresh(@Valid @RequestBody RefreshTokenRequest request) {
         final TokenResponse response = authService.refreshToken(request);
         final ApiResponse<TokenResponse> payload = ApiResponse.ok(RequestContextHolder.getContext().getTraceId(), response);
         return ResponseEntity.ok(payload);
     }
 
-    @Override
     public ResponseEntity<Void> logout(@Valid @RequestBody RefreshTokenRequest request) {
         authService.logout(request);
         return ResponseEntity.noContent().build();
     }
 
-    @Override
-    public ResponseEntity<ApiResponse<Void>> verifyEmail(String token) {
-        authService.verifyEmail(token);
-        final ApiResponse<Void> payload = ApiResponse.ok(RequestContextHolder.getContext().getTraceId(), null);
-        return ResponseEntity.ok(payload);
-    }
+    // Removed verifyEmail as Keycloak handles this flow directly.
+    // If an endpoint is needed to trigger email verification, it should be added separately
+    // and call authService.verifyEmail(email).
 
-    @Override
     public ResponseEntity<ApiResponse<Void>> requestPasswordReset(@Valid @RequestBody PasswordResetRequest request) {
         authService.requestPasswordReset(request);
         final ApiResponse<Void> payload = ApiResponse.ok(RequestContextHolder.getContext().getTraceId(), null);
         return ResponseEntity.accepted().body(payload);
     }
 
-    @Override
     public ResponseEntity<ApiResponse<Void>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         authService.resetPassword(request);
         final ApiResponse<Void> payload = ApiResponse.ok(RequestContextHolder.getContext().getTraceId(), null);
         return ResponseEntity.ok(payload);
     }
 
-    @Override
     public ResponseEntity<ApiResponse<Void>> changePassword(
             @AuthenticationPrincipal UserPrincipal principal,
             @Valid @RequestBody ChangePasswordRequest request
     ) {
-        authService.changePassword(principal.getUserId(), request);
+        authService.changePassword(String.valueOf(principal.getUserId()), request);
         final ApiResponse<Void> payload = ApiResponse.ok(RequestContextHolder.getContext().getTraceId(), null);
         return ResponseEntity.ok(payload);
     }

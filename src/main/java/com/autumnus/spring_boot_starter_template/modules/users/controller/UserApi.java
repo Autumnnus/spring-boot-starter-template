@@ -5,7 +5,6 @@ import com.autumnus.spring_boot_starter_template.modules.users.dto.UpdateProfile
 import com.autumnus.spring_boot_starter_template.modules.users.dto.UserCreateRequest;
 import com.autumnus.spring_boot_starter_template.modules.users.dto.UserResponse;
 import com.autumnus.spring_boot_starter_template.modules.users.dto.UserUpdateRequest;
-import com.autumnus.spring_boot_starter_template.modules.users.entity.RoleName;
 import com.autumnus.spring_boot_starter_template.modules.users.service.UserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -32,7 +31,6 @@ public interface UserApi {
     @GetMapping
     ApiResponse<?> listUsers(
             @Parameter(hidden = true) @PageableDefault Pageable pageable,
-            @RequestParam(required = false) RoleName role,
             @RequestParam(required = false) Boolean active
     );
 

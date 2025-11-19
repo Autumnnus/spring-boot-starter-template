@@ -1,15 +1,22 @@
 package com.autumnus.spring_boot_starter_template.modules.auth.dto;
 
-import lombok.Builder;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-import java.time.Instant;
-
-@Builder
 public record TokenResponse(
+        @JsonProperty("access_token")
         String accessToken,
-        Instant accessTokenExpiresAt,
+        @JsonProperty("expires_in")
+        Long expiresIn,
+        @JsonProperty("refresh_expires_in")
+        Long refreshExpiresIn,
+        @JsonProperty("refresh_token")
         String refreshToken,
-        Instant refreshTokenExpiresAt,
-        String tokenType
+        @JsonProperty("token_type")
+        String tokenType,
+        @JsonProperty("not-before-policy")
+        Integer notBeforePolicy,
+        @JsonProperty("session_state")
+        String sessionState,
+        String scope
 ) {
 }

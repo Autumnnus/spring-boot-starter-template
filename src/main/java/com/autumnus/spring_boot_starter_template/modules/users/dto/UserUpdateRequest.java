@@ -1,6 +1,5 @@
 package com.autumnus.spring_boot_starter_template.modules.users.dto;
 
-import com.autumnus.spring_boot_starter_template.modules.users.entity.RoleName;
 import jakarta.validation.constraints.Email;
 
 import java.util.Set;
@@ -11,8 +10,8 @@ public record UserUpdateRequest(
 
         String username,
 
-        Boolean active,
+        Boolean active
 
-        Set<RoleName> roles
+
 ) {
 }

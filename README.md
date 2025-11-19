@@ -9,7 +9,7 @@ idempotent writes, RBAC/ABAC authorisation, centralised error handling, and obse
 - **Modular architecture** with domain-specific modules under `modules/` (e.g. `users`) and cross-cutting concerns in
   `common/`.
 - **Shared base models** providing numeric ids, audit timestamps, and DTO metadata via `BaseEntity`/`BaseDto`.
-- **JWT based authentication** (`Bearer` tokens) with pluggable secret via configuration.
+- **Keycloak based authentication** (OAuth2/OIDC) for secure token management.
 - **RBAC + ABAC**: Role checks are enforced via Spring Security annotations while resource ownership checks are
   delegated to dedicated guards.
 - **Idempotent write endpoints** using the `@Idempotent` annotation and the `idempotency_keys` table.
@@ -133,7 +133,7 @@ YAML files.
 
 | Property                                           | Description                                                                     |
 |----------------------------------------------------|---------------------------------------------------------------------------------|
-| `application.security.jwt-secret`                  | HMAC secret for signing JWT access tokens (min 32 chars).                       |
+
 | `application.security.access-token-ttl`            | Duration (ISO-8601) for access token lifetime.                                  |
 | `application.security.public-endpoints`            | Comma-separated list of patterns that bypass authentication.                    |
 | `application.rate-limit.capacity`                  | Maximum number of requests permitted per refill period.                         |
@@ -145,6 +145,12 @@ YAML files.
 | `application.storage.s3.path-style-access`         | Enable when interacting with Localstack/minio style endpoints.                  |
 | `application.storage.s3.public-base-url`           | Optional CDN/public URL prefix used when building asset links.                  |
 | `application.messaging.notifications.*`            | Exchange, queue and routing key used for RabbitMQ-based notification fan-out.   |
+| `keycloak.admin.server-url`                        | Base URL of the Keycloak server (e.g., `http://localhost:8181`).                |
+| `keycloak.admin.realm`                             | The Keycloak realm to be used.                                                  |
+| `keycloak.admin.client-id`                         | Client ID for the application in Keycloak.                                      |
+| `keycloak.admin.client-secret`                     | Client secret for the application in Keycloak.                                  |
+| `keycloak.admin.admin-user`                        | Keycloak admin username for administrative tasks.                               |
+| `keycloak.admin.admin-password`                    | Keycloak admin password for administrative tasks.                               |
 | `spring.datasource.*`                              | Database connectivity settings (PostgreSQL by default).                         |
 | `spring.data.redis.*`                              | Redis connection info for caching / distributed tokens (optional).              |
 | `spring.rabbitmq.*`                                | RabbitMQ host, port and credentials shared with the notification microservice.  |
@@ -207,10 +213,8 @@ identifiers directly from the JWT payload.
 
 ## 🔐 Security Model
 
-- **Authentication:** Incoming requests must carry a `Bearer <token>` header containing a JWT generated with the
-  configured secret.
-- **Token payload:** Access and refresh tokens embed the immutable user id, email, username, and role claims so clients
-  never need to submit those identifiers explicitly.
+- **Authentication:** Incoming requests must carry a `Bearer <token>` header containing a JWT issued by Keycloak.
+
 - **Authorisation:**
     - RBAC checks rely on Spring Security's `@PreAuthorize`/`@PostAuthorize` annotations (e.g. `hasRole('ADMIN')`).
     - ABAC checks leverage helper beans such as `OwnershipGuard` for owner-scoped access (
@@ -254,7 +258,7 @@ the UI's authorise dialog.
 ## 🧪 Testing
 
 - Unit/integration tests should be executed via `./mvnw test`.
-- The `test` profile spins up with an in-memory H2 database and a deterministic JWT secret.
+- The `test` profile spins up with an in-memory H2 database.
 
 > **Note:** The Maven wrapper downloads Maven on first run. Ensure outbound network access is available or install Maven
 > locally if the wrapper cannot fetch the distribution.
@@ -262,12 +266,12 @@ the UI's authorise dialog.
 ## 🚀 Getting Started
 
 1. **Install dependencies:** Java 17+, Docker (optional for Postgres/Redis).
-2. **Configure environment:** Update `application.yaml` (or provide env vars) with real database credentials and a
-   strong JWT secret.
-3. **Run database/redis (optional):**
+2. **Configure environment:** Update `application.yaml` (or provide env vars) with real database credentials and Keycloak configuration.
+3. **Run database/redis/keycloak (optional):**
    ```bash
    docker compose up -d
    ```
+   This will also start the Keycloak server. You can access the Keycloak admin console at `http://localhost:8181`.
 4. **Launch the application:**
    ```bash
    ./mvnw spring-boot:run
@@ -280,7 +284,7 @@ the UI's authorise dialog.
 ```bash
 # Create user (idempotent)
 curl -X POST http://localhost:8080/api/v1/users \
-  -H "Authorization: Bearer <JWT>" \
+  -H "Authorization: Bearer <Keycloak JWT>" \
   -H "Idempotency-Key: 0b4d37a1-3d95-4b4a-92f1-8c1f0de733cd" \
   -H "Content-Type: application/json" \
   -d '{
@@ -307,7 +311,7 @@ Repeat the same call with the identical key to receive the cached `201 Created` 
 - Spring Security, Validation, Data JPA
 - Bucket4j (rate limiting)
 - ModelMapper (mapping)
-- JJWT (JWT signing)
+- Keycloak (Authentication and Authorization)
 - Springdoc OpenAPI
 - Lombok
 

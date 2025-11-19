@@ -13,12 +13,8 @@ import com.autumnus.spring_boot_starter_template.common.storage.model.MediaManif
 import com.autumnus.spring_boot_starter_template.common.storage.model.MediaUpload;
 import com.autumnus.spring_boot_starter_template.common.storage.service.MediaStorageService;
 import com.autumnus.spring_boot_starter_template.modules.users.dto.*;
-import com.autumnus.spring_boot_starter_template.modules.users.entity.Role;
-import com.autumnus.spring_boot_starter_template.modules.users.entity.RoleName;
 import com.autumnus.spring_boot_starter_template.modules.users.entity.User;
-import com.autumnus.spring_boot_starter_template.modules.users.entity.UserRoleAssignment;
 import com.autumnus.spring_boot_starter_template.modules.users.mapper.UserMapper;
-import com.autumnus.spring_boot_starter_template.modules.users.repository.RoleRepository;
 import com.autumnus.spring_boot_starter_template.modules.users.repository.UserRepository;
 import com.autumnus.spring_boot_starter_template.modules.users.repository.UserSpecifications;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -34,7 +30,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 
 @Service
 @Transactional
@@ -44,7 +39,6 @@ public class UserServiceImpl implements UserService {
     private static final Duration LOCK_DURATION = Duration.ofMinutes(15);
 
     private final UserRepository userRepository;
-    private final RoleRepository roleRepository;
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
     private final MediaStorageService mediaStorageService;
@@ -53,7 +47,6 @@ public class UserServiceImpl implements UserService {
 
     public UserServiceImpl(
             UserRepository userRepository,
-            RoleRepository roleRepository,
             UserMapper userMapper,
             PasswordEncoder passwordEncoder,
             MediaStorageService mediaStorageService,
@@ -61,7 +54,6 @@ public class UserServiceImpl implements UserService {
             NotificationProducer notificationProducer
     ) {
         this.userRepository = userRepository;
-        this.roleRepository = roleRepository;
         this.userMapper = userMapper;
         this.passwordEncoder = passwordEncoder;
         this.mediaStorageService = mediaStorageService;
@@ -71,18 +63,17 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<UserResponse> listUsers(Pageable pageable, RoleName role, Boolean active) {
-        final Specification<User> specification = Specification.where(UserSpecifications.withRole(role))
-                .and(UserSpecifications.withActive(active));
+    public Page<UserResponse> listUsers(Pageable pageable, Boolean active) {
+        final Specification<User> specification = Specification.where(UserSpecifications.withActive(active));
         return userRepository.findAll(specification, pageable)
-                .map(user -> userMapper.toResponse(user, userMapper.extractRoleNames(user)));
+                .map(userMapper::toResponse);
     }
 
     @Override
     @Transactional(readOnly = true)
     public UserResponse getUser(Long id) {
         final User user = findEntityById(id);
-        return userMapper.toResponse(user, userMapper.extractRoleNames(user));
+        return userMapper.toResponse(user);
     }
 
     @Override
@@ -93,13 +84,11 @@ public class UserServiceImpl implements UserService {
         final User user = new User();
         user.setEmail(request.email());
         user.setUsername(request.username());
-        user.setPasswordHash(passwordEncoder.encode(request.password()));
         user.setActive(request.active() == null || request.active());
         user.setPasswordChangedAt(Instant.now());
-        assignRoles(user, request.roles(), null);
         final User saved = userRepository.save(user);
         AuditContextHolder.setEntityId(saved.getId().toString());
-        AuditContextHolder.setNewValue(userMapper.toResponse(saved, userMapper.extractRoleNames(saved)));
+        AuditContextHolder.setNewValue(userMapper.toResponse(saved));
 //        notificationProducer.send(NotificationMessage.builder()
 //                .userId(saved.getId())
 //                .title("Welcome to Autumnus")
@@ -112,7 +101,7 @@ public class UserServiceImpl implements UserService {
                 "Hi %s, your account is ready to use.".formatted(saved.getUsername()),
                 NotificationMessage.NotificationType.SUCCESS
         ));
-        return userMapper.toResponse(saved, userMapper.extractRoleNames(saved));
+        return userMapper.toResponse(saved);
     }
 
     @Override
@@ -126,7 +115,7 @@ public class UserServiceImpl implements UserService {
     public UserResponse updateUser(Long id, UserUpdateRequest request) {
         final User user = findEntityById(id);
         AuditContextHolder.setEntityId(user.getId().toString());
-        AuditContextHolder.setOldValue(userMapper.toResponse(user, userMapper.extractRoleNames(user)));
+        AuditContextHolder.setOldValue(userMapper.toResponse(user));
         if (request.email() != null && !Objects.equals(request.email(), user.getEmail())) {
             validateEmailUniqueness(request.email(), user.getId());
         }
@@ -134,12 +123,9 @@ public class UserServiceImpl implements UserService {
             validateUsernameUniqueness(request.username(), user.getId());
         }
         userMapper.updateEntity(request, user);
-        if (request.roles() != null) {
-            assignRoles(user, request.roles(), null);
-        }
         final User saved = userRepository.save(user);
-        AuditContextHolder.setNewValue(userMapper.toResponse(saved, userMapper.extractRoleNames(saved)));
-        return userMapper.toResponse(saved, userMapper.extractRoleNames(saved));
+        AuditContextHolder.setNewValue(userMapper.toResponse(saved));
+        return userMapper.toResponse(saved);
     }
 
     @Override
@@ -152,7 +138,7 @@ public class UserServiceImpl implements UserService {
     public void deleteUser(Long id) {
         final User user = findEntityById(id);
         AuditContextHolder.setEntityId(user.getId().toString());
-        AuditContextHolder.setOldValue(userMapper.toResponse(user, userMapper.extractRoleNames(user)));
+        AuditContextHolder.setOldValue(userMapper.toResponse(user));
         user.markDeleted();
         user.setActive(false);
         userRepository.save(user);
@@ -188,7 +174,7 @@ public class UserServiceImpl implements UserService {
     public UserResponse updateProfile(Long userId, UpdateProfileRequest request) {
         final User user = findEntityById(userId);
         AuditContextHolder.setEntityId(user.getId().toString());
-        AuditContextHolder.setOldValue(userMapper.toResponse(user, userMapper.extractRoleNames(user)));
+        AuditContextHolder.setOldValue(userMapper.toResponse(user));
         if (request.email() != null && !Objects.equals(request.email(), user.getEmail())) {
             validateEmailUniqueness(request.email(), user.getId());
             user.setEmail(request.email());
@@ -198,8 +184,8 @@ public class UserServiceImpl implements UserService {
             user.setUsername(request.username());
         }
         final User saved = userRepository.save(user);
-        AuditContextHolder.setNewValue(userMapper.toResponse(saved, userMapper.extractRoleNames(saved)));
-        return userMapper.toResponse(saved, userMapper.extractRoleNames(saved));
+        AuditContextHolder.setNewValue(userMapper.toResponse(saved));
+        return userMapper.toResponse(saved);
     }
 
     @Override
@@ -213,14 +199,14 @@ public class UserServiceImpl implements UserService {
     public UserResponse updateProfilePhoto(Long id, ProfilePhotoUploadCommand command) {
         final User user = findEntityById(id);
         AuditContextHolder.setEntityId(user.getId().toString());
-        AuditContextHolder.setOldValue(userMapper.toResponse(user, userMapper.extractRoleNames(user)));
+        AuditContextHolder.setOldValue(userMapper.toResponse(user));
         final MediaManifest existingManifest = parseManifest(user.getProfilePhotoManifest());
         final MediaUpload upload = new MediaUpload(command.originalFilename(), command.contentType(), command.content());
         final MediaAsset asset = mediaStorageService.replace(existingManifest, MediaKind.IMAGE, "avatar", upload);
         user.setProfilePhotoManifest(writeManifest(asset.manifest()));
         final User saved = userRepository.save(user);
-        AuditContextHolder.setNewValue(userMapper.toResponse(saved, userMapper.extractRoleNames(saved)));
-        return userMapper.toResponse(saved, userMapper.extractRoleNames(saved));
+        AuditContextHolder.setNewValue(userMapper.toResponse(saved));
+        return userMapper.toResponse(saved);
     }
 
     @Override
@@ -237,12 +223,12 @@ public class UserServiceImpl implements UserService {
         if (user.getProfilePhotoManifest() == null) {
             return;
         }
-        AuditContextHolder.setOldValue(userMapper.toResponse(user, userMapper.extractRoleNames(user)));
+        AuditContextHolder.setOldValue(userMapper.toResponse(user));
         final MediaManifest manifest = parseManifest(user.getProfilePhotoManifest());
         mediaStorageService.delete(manifest);
         user.setProfilePhotoManifest(null);
         final User saved = userRepository.save(user);
-        AuditContextHolder.setNewValue(userMapper.toResponse(saved, userMapper.extractRoleNames(saved)));
+        AuditContextHolder.setNewValue(userMapper.toResponse(saved));
     }
 
     @Override
@@ -256,12 +242,12 @@ public class UserServiceImpl implements UserService {
     public void activateUser(Long userId) {
         final User user = findEntityById(userId);
         AuditContextHolder.setEntityId(user.getId().toString());
-        AuditContextHolder.setOldValue(userMapper.toResponse(user, userMapper.extractRoleNames(user)));
+        AuditContextHolder.setOldValue(userMapper.toResponse(user));
         user.setActive(true);
         user.setLockedUntil(null);
         user.setFailedLoginAttempts(0);
         userRepository.save(user);
-        AuditContextHolder.setNewValue(userMapper.toResponse(user, userMapper.extractRoleNames(user)));
+        AuditContextHolder.setNewValue(userMapper.toResponse(user));
     }
 
     @Override
@@ -275,10 +261,10 @@ public class UserServiceImpl implements UserService {
     public void deactivateUser(Long userId) {
         final User user = findEntityById(userId);
         AuditContextHolder.setEntityId(user.getId().toString());
-        AuditContextHolder.setOldValue(userMapper.toResponse(user, userMapper.extractRoleNames(user)));
+        AuditContextHolder.setOldValue(userMapper.toResponse(user));
         user.setActive(false);
         userRepository.save(user);
-        AuditContextHolder.setNewValue(userMapper.toResponse(user, userMapper.extractRoleNames(user)));
+        AuditContextHolder.setNewValue(userMapper.toResponse(user));
     }
 
     @Override
@@ -324,23 +310,6 @@ public class UserServiceImpl implements UserService {
             return objectMapper.writeValueAsString(manifest);
         } catch (JsonProcessingException e) {
             throw new MediaStorageException("Failed to persist media manifest", e);
-        }
-    }
-
-    private void assignRoles(User user, Set<RoleName> roles, User assignedBy) {
-        final Set<RoleName> targetRoles = (roles == null || roles.isEmpty())
-                ? Set.of(RoleName.USER)
-                : roles;
-        user.getRoleAssignments().clear();
-        for (RoleName roleName : targetRoles) {
-            final Role role = roleRepository.findByName(roleName)
-                    .orElseThrow(() -> new ResourceNotFoundException("Role not found"));
-            final UserRoleAssignment assignment = new UserRoleAssignment();
-            assignment.setUser(user);
-            assignment.setRole(role);
-            assignment.setAssignedAt(Instant.now());
-            assignment.setAssignedBy(assignedBy);
-            user.getRoleAssignments().add(assignment);
         }
     }
 
