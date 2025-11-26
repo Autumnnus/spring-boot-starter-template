@@ -1,7 +1,7 @@
 services:
   #  app:
   #    build: .
-  #    container_name: spring-boot-starter-app
+  #    container_name: app
   #    develop:
   #      watch:
   #        - action: rebuild
@@ -58,7 +58,7 @@ services:
 
   postgres:
     image: postgres:16-trixie
-    container_name: spring-boot-starter-postgres
+    container_name: postgres-db
     environment:
       - "POSTGRES_DB=${POSTGRES_DB}"
       - "POSTGRES_USER=${POSTGRES_USER}"
@@ -75,7 +75,7 @@ services:
 
   redis:
     image: "redis:latest"
-    container_name: spring-boot-starter-redis
+    container_name: redis
     ports:
       - "${REDIS_PORT}:6379"
     volumes:
@@ -88,7 +88,7 @@ services:
 
   rabbitmq:
     image: rabbitmq:3.13-management
-    container_name: spring-boot-starter-rabbitmq
+    container_name: rabbitmq
     environment:
       - "RABBITMQ_DEFAULT_USER=${RABBITMQ_USERNAME}"
       - "RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD}"
@@ -105,7 +105,7 @@ services:
 
   redis-insight:
     image: redis/redisinsight:latest
-    container_name: spring-boot-starter-redis-insight
+    container_name: redis-insight
     restart: always
     ports:
       - "${REDIS_INSIGHT_PORT}:5540"
@@ -134,7 +134,7 @@ services:
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.15.3
-    container_name: spring-boot-starter-elasticsearch
+    container_name: elasticsearch
     environment:
       - node.name=elasticsearch
       - cluster.name=docker-cluster
@@ -168,7 +168,7 @@ services:
 
   kibana:
     image: docker.elastic.co/kibana/kibana:8.15.3
-    container_name: spring-boot-starter-kibana
+    container_name: kibana
     environment:
       - SERVERNAME=kibana
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
@@ -194,7 +194,7 @@ services:
 
   apm-server:
     image: docker.elastic.co/apm/apm-server:8.15.3
-    container_name: spring-boot-starter-apm-server
+    container_name: apm-server
     cap_add: [ "CHOWN", "DAC_OVERRIDE", "SETGID", "SETUID" ]
     cap_drop: [ "ALL" ]
     command: >
@@ -218,6 +218,49 @@ services:
         condition: service_healthy
       kibana:
         condition: service_healthy
+
+  keycloak-db:
+    image: postgres:16-trixie
+    container_name: keycloak-postgres
+    labels:
+      org.springframework.boot.ignore: true
+    environment:
+      - "POSTGRES_DB=keycloak"
+      - "POSTGRES_USER=keycloak"
+      - "POSTGRES_PASSWORD=keycloak"
+    ports:
+      - "5433:5432"
+    volumes:
+      - keycloak-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U keycloak -d keycloak" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:23.0
+    container_name: keycloak
+    command: start-dev
+    environment:
+      - KC_DB=postgres
+      - KC_DB_URL=jdbc:postgresql://keycloak-db:5432/keycloak
+      - KC_DB_USERNAME=keycloak
+      - KC_DB_PASSWORD=keycloak
+      - KEYCLOAK_ADMIN=${KEYCLOAK_ADMIN_USER}
+      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD}
+      - KC_HEALTH_ENABLED=true
+    ports:
+      - "8180:8080"
+    depends_on:
+      keycloak-db:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080;echo -e 'GET /health/ready HTTP/1.1\r\nhost: http://localhost\r\nConnection: close\r\n\r\n' >&3;if [ $? -eq 0 ]; then echo 'Healthcheck Successful';exit 0;else echo 'Healthcheck Failed';exit 1;fi;" ]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
 
   #  notification-service:
   #    build: ./notification-service
@@ -245,55 +288,13 @@ services:
   #      rabbitmq:
   #        condition: service_healthy
 
-  keycloak-db:
-    image: postgres:16-trixie
-    container_name: spring-boot-starter-keycloak-db
-    volumes:
-      - keycloak_pgdata:/var/lib/postgresql/data
-    environment:
-      - "POSTGRES_DB=${KEYCLOAK_DB}"
-      - "POSTGRES_USER=${KEYCLOAK_DB_USER}"
-      - "POSTGRES_PASSWORD=${KEYCLOAK_DB_PASSWORD}"
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${KEYCLOAK_DB_USER} -d ${KEYCLOAK_DB}" ]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
-  keycloak:
-    image: quay.io/keycloak/keycloak:25.0.1
-    container_name: spring-boot-starter-keycloak
-    command: start-dev
-    environment:
-      - KC_DB=postgres
-      - KC_DB_URL_HOST=keycloak-db
-      - KC_DB_URL_DATABASE=${KEYCLOAK_DB}
-      - KC_DB_USERNAME=${KEYCLOAK_DB_USER}
-      - KC_DB_PASSWORD=${KEYCLOAK_DB_PASSWORD}
-      - KC_DB_SCHEMA=public
-      - KEYCLOAK_ADMIN=${KEYCLOAK_ADMIN_USER}
-      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD}
-      - KC_HEALTH_ENABLED=true
-      - KC_METRICS_ENABLED=true
-      - KC_LOG_LEVEL=INFO
-    ports:
-      - "8181:8080"
-    depends_on:
-      keycloak-db:
-        condition: service_healthy
-#    healthcheck:
-#      test: [ "CMD", "curl", "-f", "http://localhost:8080/health/ready" ]
-#      interval: 10s
-#      timeout: 5s
-#      retries: 20
-
 volumes:
   pgdata:
   redisdata:
   redis-insight:
   esdata:
   rabbitmqdata:
-  keycloak_pgdata:
+  keycloak-db-data:
 
 networks:
   elastic:
