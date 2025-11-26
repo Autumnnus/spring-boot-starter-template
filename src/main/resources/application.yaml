@@ -10,6 +10,7 @@ spring:
     password: ${POSTGRES_PASSWORD}
   docker:
     compose:
+      enabled: false
       lifecycle-management: START_AND_STOP
       stop:
         command: down
