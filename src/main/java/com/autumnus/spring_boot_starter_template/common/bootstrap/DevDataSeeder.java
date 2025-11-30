@@ -5,11 +5,9 @@ import com.autumnus.spring_boot_starter_template.modules.users.repository.UserRe
 import com.autumnus.spring_boot_starter_template.modules.users.service.UserService;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Profile;
 
-@Configuration
-@Profile("!test")
+//@Configuration
+//@Profile("!test")
 public class DevDataSeeder {
 
     @Bean

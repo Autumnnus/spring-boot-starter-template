@@ -19,7 +19,7 @@ import java.time.Instant;
 @Setter
 public class User extends BaseEntity {
 
-    @Column(nullable = false)
+    @Column(name = "keycloak_id", nullable = false)
     private String keycloakId;
 
     @Column(nullable = false)
