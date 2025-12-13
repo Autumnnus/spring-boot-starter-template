@@ -1,6 +1,7 @@
 package com.autumnus.spring_boot_starter_template.modules.auth.service;
 
 import com.autumnus.spring_boot_starter_template.common.config.SecurityProperties;
+import com.autumnus.spring_boot_starter_template.common.email.EmailService;
 import com.autumnus.spring_boot_starter_template.common.logging.annotation.AuditAction;
 import com.autumnus.spring_boot_starter_template.common.logging.annotation.Auditable;
 import com.autumnus.spring_boot_starter_template.common.logging.annotation.NoLog;
@@ -43,6 +44,7 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final SecurityProperties securityProperties;
     private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
 
     public AuthServiceImpl(
             UserService userService,
@@ -54,7 +56,8 @@ public class AuthServiceImpl implements AuthService {
             EmailVerificationTokenRepository emailVerificationTokenRepository,
             PasswordResetTokenRepository passwordResetTokenRepository,
             SecurityProperties securityProperties,
-            PasswordEncoder passwordEncoder
+            PasswordEncoder passwordEncoder,
+            EmailService emailService
     ) {
         this.userService = userService;
         this.userRepository = userRepository;
@@ -66,6 +69,7 @@ public class AuthServiceImpl implements AuthService {
         this.passwordResetTokenRepository = passwordResetTokenRepository;
         this.securityProperties = securityProperties;
         this.passwordEncoder = passwordEncoder;
+        this.emailService = emailService;
     }
 
     @Override
@@ -149,6 +153,9 @@ public class AuthServiceImpl implements AuthService {
         verificationToken.setUsedAt(Instant.now());
         userRepository.save(user);
         emailVerificationTokenRepository.save(verificationToken);
+
+        // Send welcome email
+        emailService.sendWelcomeEmail(user.getEmail(), user.getUsername());
     }
 
     @Override
@@ -160,6 +167,9 @@ public class AuthServiceImpl implements AuthService {
         token.setToken(UUID.randomUUID().toString());
         token.setExpiresAt(Instant.now().plus(securityProperties.getPasswordResetTokenTtl()));
         passwordResetTokenRepository.save(token);
+
+        // Send password reset email
+        emailService.sendPasswordResetEmail(user.getEmail(), user.getUsername(), token.getToken());
     }
 
     @Override
@@ -180,6 +190,9 @@ public class AuthServiceImpl implements AuthService {
         passwordResetTokenRepository.save(token);
         userRepository.save(user);
         tokenService.revokeAllUserTokens(user.getId());
+
+        // Send password changed email
+        emailService.sendPasswordChangedEmail(user.getEmail(), user.getUsername());
     }
 
     @Override
@@ -193,6 +206,9 @@ public class AuthServiceImpl implements AuthService {
         user.setPasswordChangedAt(Instant.now());
         userRepository.save(user);
         tokenService.revokeAllUserTokens(user.getId());
+
+        // Send password changed email
+        emailService.sendPasswordChangedEmail(user.getEmail(), user.getUsername());
     }
 
     private void createEmailVerificationToken(User user) {
@@ -201,5 +217,8 @@ public class AuthServiceImpl implements AuthService {
         token.setToken(UUID.randomUUID().toString());
         token.setExpiresAt(Instant.now().plus(securityProperties.getEmailVerificationTokenTtl()));
         emailVerificationTokenRepository.save(token);
+
+        // Send verification email
+        emailService.sendVerificationEmail(user.getEmail(), user.getUsername(), token.getToken());
     }
 }

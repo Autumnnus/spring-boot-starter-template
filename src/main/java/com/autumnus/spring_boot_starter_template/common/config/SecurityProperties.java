@@ -21,6 +21,7 @@ public class SecurityProperties {
             "/v3/api-docs/**",
             "/api/v1/auth/**"
     );
+    private OAuth2Properties oauth2 = new OAuth2Properties();
 
     public String getJwtSecret() {
         return jwtSecret;
@@ -68,5 +69,34 @@ public class SecurityProperties {
 
     public void setPublicEndpoints(List<String> publicEndpoints) {
         this.publicEndpoints = publicEndpoints;
+    }
+
+    public OAuth2Properties getOauth2() {
+        return oauth2;
+    }
+
+    public void setOauth2(OAuth2Properties oauth2) {
+        this.oauth2 = oauth2;
+    }
+
+    public static class OAuth2Properties {
+        private String successRedirectUrl = "http://localhost:3000/auth/callback";
+        private String failureRedirectUrl = "http://localhost:3000/auth/error";
+
+        public String getSuccessRedirectUrl() {
+            return successRedirectUrl;
+        }
+
+        public void setSuccessRedirectUrl(String successRedirectUrl) {
+            this.successRedirectUrl = successRedirectUrl;
+        }
+
+        public String getFailureRedirectUrl() {
+            return failureRedirectUrl;
+        }
+
+        public void setFailureRedirectUrl(String failureRedirectUrl) {
+            this.failureRedirectUrl = failureRedirectUrl;
+        }
     }
 }
