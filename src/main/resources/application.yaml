@@ -110,9 +110,13 @@ application:
       - /api/v1/auth/**
       - /login/oauth2/**
       - /oauth2/**
+      - /oauth-test.html
+      - /css/**
+      - /js/**
+      - /images/**
     oauth2:
-      success-redirect-url: ${OAUTH2_SUCCESS_REDIRECT_URL:http://localhost:3000/auth/callback}
-      failure-redirect-url: ${OAUTH2_FAILURE_REDIRECT_URL:http://localhost:3000/auth/error}
+      success-redirect-url: ${OAUTH2_SUCCESS_REDIRECT_URL:http://localhost:8088/oauth-test.html}
+      failure-redirect-url: ${OAUTH2_FAILURE_REDIRECT_URL:http://localhost:8088/oauth-test.html}
   email:
     from: ${EMAIL_FROM:noreply@example.com}
     from-name: ${EMAIL_FROM_NAME:Spring Boot Starter}

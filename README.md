@@ -10,6 +10,8 @@ idempotent writes, RBAC/ABAC authorisation, centralised error handling, and obse
   `common/`.
 - **Shared base models** providing numeric ids, audit timestamps, and DTO metadata via `BaseEntity`/`BaseDto`.
 - **JWT based authentication** (`Bearer` tokens) with pluggable secret via configuration.
+- **OAuth2 integration** with Google (and extensible to other providers) for social login.
+- **Email service** with beautiful HTML templates for verification, password reset, and notifications.
 - **RBAC + ABAC**: Role checks are enforced via Spring Security annotations while resource ownership checks are
   delegated to dedicated guards.
 - **Idempotent write endpoints** using the `@Idempotent` annotation and the `idempotency_keys` table.
@@ -29,7 +31,8 @@ idempotent writes, RBAC/ABAC authorisation, centralised error handling, and obse
 
 | Service                          | URL                                                                                        | Description                   |
 |----------------------------------|--------------------------------------------------------------------------------------------|-------------------------------|
-| **Swagger (Gateway)**            | [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html) | API dokümantasyonu            |
+| **Swagger (Gateway)**            | [http://localhost:8088/swagger-ui/index.html](http://localhost:8088/swagger-ui/index.html) | API dokümantasyonu            |
+| **OAuth2 Test Page**             | [http://localhost:8088/oauth-test.html](http://localhost:8088/oauth-test.html)             | OAuth2 & Auth Testing         |
 | **Redis Insight**                | [http://localhost:5540](http://localhost:5540)                                             | Redis yönetim arayüzü         |
 | **RabbitMQ Management**          | [http://localhost:15672](http://localhost:15672)                                           | Queue Management              |
 | **Notification Service Swagger** | [http://localhost:8081/swagger-ui/index.html](http://localhost:8081/swagger-ui/index.html) | Notification microservice API |
@@ -135,7 +138,15 @@ YAML files.
 |----------------------------------------------------|---------------------------------------------------------------------------------|
 | `application.security.jwt-secret`                  | HMAC secret for signing JWT access tokens (min 32 chars).                       |
 | `application.security.access-token-ttl`            | Duration (ISO-8601) for access token lifetime.                                  |
+| `application.security.refresh-token-ttl`           | Duration (ISO-8601) for refresh token lifetime (default: 7 days).               |
+| `application.security.email-verification-token-ttl`| Duration (ISO-8601) for email verification token (default: 24h).                |
+| `application.security.password-reset-token-ttl`    | Duration (ISO-8601) for password reset token (default: 1h).                     |
 | `application.security.public-endpoints`            | Comma-separated list of patterns that bypass authentication.                    |
+| `application.security.oauth2.success-redirect-url` | Frontend URL to redirect after successful OAuth2 login.                         |
+| `application.security.oauth2.failure-redirect-url` | Frontend URL to redirect after failed OAuth2 login.                             |
+| `application.email.from`                           | Email address used as sender for all emails.                                    |
+| `application.email.from-name`                      | Display name for email sender.                                                  |
+| `application.email.base-url`                       | Base URL for generating email verification and reset links.                     |
 | `application.rate-limit.capacity`                  | Maximum number of requests permitted per refill period.                         |
 | `application.rate-limit.refill-period`             | ISO-8601 duration describing the bucket refill cadence.                         |
 | `application.storage.s3.bucket`                    | Target S3 bucket that will store static assets.                                 |
@@ -148,6 +159,12 @@ YAML files.
 | `spring.datasource.*`                              | Database connectivity settings (PostgreSQL by default).                         |
 | `spring.data.redis.*`                              | Redis connection info for caching / distributed tokens (optional).              |
 | `spring.rabbitmq.*`                                | RabbitMQ host, port and credentials shared with the notification microservice.  |
+| `spring.security.oauth2.client.registration.google.client-id` | Google OAuth2 client ID from Google Cloud Console.             |
+| `spring.security.oauth2.client.registration.google.client-secret` | Google OAuth2 client secret from Google Cloud Console.       |
+| `spring.mail.host`                                 | SMTP server host (e.g. smtp.gmail.com).                                         |
+| `spring.mail.port`                                 | SMTP server port (default: 587 for TLS).                                        |
+| `spring.mail.username`                             | SMTP username (email address for Gmail).                                        |
+| `spring.mail.password`                             | SMTP password (app password for Gmail with 2FA).                                |
 
 > A dedicated `application-test.yaml` configures an in-memory H2 database and a deterministic JWT secret for test runs.
 
@@ -205,6 +222,67 @@ Swagger documents both administrative and self-service flows:
 Once authorised in Swagger UI, select the self-service operations to update your profile—the backend extracts immutable
 identifiers directly from the JWT payload.
 
+## 🔐 Authentication & Authorization
+
+### Traditional Authentication
+
+The system provides a complete authentication flow with:
+
+- **User Registration** - Email-based registration with verification
+- **Login** - JWT token-based authentication (access + refresh tokens)
+- **Email Verification** - Secure email verification flow
+- **Password Reset** - Token-based password reset via email
+- **Password Change** - Authenticated password change with token revocation
+
+### OAuth2 Social Login
+
+Integrated OAuth2 support for social authentication:
+
+- **Google OAuth2** - Login with Google account
+- **Automatic User Creation** - Creates users on first OAuth2 login
+- **Profile Sync** - Syncs profile picture from OAuth2 provider
+- **Email Verification** - OAuth2 users are auto-verified
+
+**Test OAuth2:** Visit [http://localhost:8088/oauth-test.html](http://localhost:8088/oauth-test.html)
+
+### Email Service
+
+Automated email notifications with beautiful HTML templates:
+
+- **Verification Emails** - Sent after registration (24h expiry)
+- **Welcome Emails** - Sent after successful email verification
+- **Password Reset** - Secure password reset links (1h expiry)
+- **Password Changed** - Security notifications for password changes
+
+All emails are sent asynchronously and use professional responsive HTML templates.
+
+**Detailed Setup:** See [AUTH_SETUP.md](AUTH_SETUP.md) for OAuth2 and email configuration.
+
+### Quick Test
+
+1. **OAuth2 Test Page:** [http://localhost:8088/oauth-test.html](http://localhost:8088/oauth-test.html)
+2. **Swagger UI:** [http://localhost:8088/swagger-ui/index.html](http://localhost:8088/swagger-ui/index.html)
+3. **Traditional Login:**
+   ```bash
+   curl -X POST http://localhost:8088/api/v1/auth/login \
+     -H "Content-Type: application/json" \
+     -d '{"email":"user@example.com","password":"password"}'
+   ```
+
+### Authentication Endpoints
+
+| Endpoint                           | Method | Description                    |
+|------------------------------------|--------|--------------------------------|
+| `/api/v1/auth/register`            | POST   | Register new user              |
+| `/api/v1/auth/login`               | POST   | Login with credentials         |
+| `/api/v1/auth/verify-email`        | GET    | Verify email with token        |
+| `/api/v1/auth/request-password-reset` | POST   | Request password reset         |
+| `/api/v1/auth/reset-password`      | POST   | Reset password with token      |
+| `/api/v1/auth/change-password`     | POST   | Change password (authenticated)|
+| `/api/v1/auth/refresh`             | POST   | Refresh access token           |
+| `/api/v1/auth/logout`              | POST   | Logout and revoke token        |
+| `/oauth2/authorization/google`     | GET    | Initiate Google OAuth2 login   |
+
 ## 🔐 Security Model
 
 - **Authentication:** Incoming requests must carry a `Bearer <token>` header containing a JWT generated with the
@@ -261,10 +339,13 @@ the UI's authorise dialog.
 
 ## 🚀 Getting Started
 
-1. **Install dependencies:** Java 17+, Docker (optional for Postgres/Redis).
-2. **Configure environment:** Update `application.yaml` (or provide env vars) with real database credentials and a
-   strong JWT secret.
-3. **Run database/redis (optional):**
+1. **Install dependencies:** Java 17+, Docker (for Postgres/Redis/RabbitMQ/Elasticsearch).
+2. **Configure environment:**
+   - Copy `.env.example` to `.env`
+   - Update database credentials, JWT secret (min 32 chars)
+   - Configure OAuth2 (see [AUTH_SETUP.md](AUTH_SETUP.md))
+   - Configure email service (SMTP settings)
+3. **Run infrastructure services:**
    ```bash
    docker compose up -d
    ```
@@ -272,8 +353,9 @@ the UI's authorise dialog.
    ```bash
    ./mvnw spring-boot:run
    ```
-5. **Access Swagger UI:**
-   Open [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html).
+5. **Test the system:**
+   - **Swagger UI:** [http://localhost:8088/swagger-ui/index.html](http://localhost:8088/swagger-ui/index.html)
+   - **OAuth2 Test:** [http://localhost:8088/oauth-test.html](http://localhost:8088/oauth-test.html)
 
 ### Example Request Flow
 
@@ -304,12 +386,16 @@ Repeat the same call with the identical key to receive the cached `201 Created` 
 ## 🧰 Tooling & Libraries
 
 - Spring Boot 3.5.x
-- Spring Security, Validation, Data JPA
+- Spring Security (JWT + OAuth2)
+- Spring Data JPA
+- Spring Mail (JavaMailSender)
+- Thymeleaf (email templates)
 - Bucket4j (rate limiting)
-- ModelMapper (mapping)
+- ModelMapper (DTO mapping)
 - JJWT (JWT signing)
 - Springdoc OpenAPI
 - Lombok
+- PostgreSQL, Redis, RabbitMQ, Elasticsearch
 
 ## 📄 License
 
