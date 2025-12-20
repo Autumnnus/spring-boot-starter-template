@@ -89,7 +89,7 @@ public class AuthServiceImpl implements AuthService {
     @Auditable(entityType = "USER", action = AuditAction.LOGIN, entityIdExpression = "#request.email")
     public TokenResponse login(LoginRequest request) {
         final User user = userService.findEntityByEmail(request.email())
-                .orElseThrow(() -> new UnauthorizedException("Invalid credentials"));
+                .orElseThrow(() -> new UnauthorizedException("auth.login.failed"));
         AuditContextHolder.setEntityId(user.getId().toString());
         userService.checkAccountLocked(user);
         try {
@@ -97,7 +97,7 @@ public class AuthServiceImpl implements AuthService {
                     new UsernamePasswordAuthenticationToken(request.email(), request.password()));
         } catch (BadCredentialsException ex) {
             userService.incrementFailedAttempts(user);
-            throw new UnauthorizedException("Invalid credentials");
+            throw new UnauthorizedException("auth.login.failed");
         }
         userService.resetFailedAttempts(user);
         user.setLastLoginAt(Instant.now());
@@ -140,12 +140,12 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public void verifyEmail(String token) {
         final EmailVerificationToken verificationToken = emailVerificationTokenRepository.findByToken(token)
-                .orElseThrow(() -> new TokenValidationException("VERIFICATION_TOKEN_NOT_FOUND", "Verification token not found"));
+                .orElseThrow(() -> new TokenValidationException("VERIFICATION_TOKEN_NOT_FOUND", "resource.token.not_found"));
         if (verificationToken.isUsed()) {
-            throw new TokenValidationException("VERIFICATION_TOKEN_USED", "Verification token already used");
+            throw new TokenValidationException("VERIFICATION_TOKEN_USED", "auth.email.verification.used");
         }
         if (verificationToken.getExpiresAt().isBefore(Instant.now())) {
-            throw new TokenValidationException("VERIFICATION_TOKEN_EXPIRED", "Verification token expired");
+            throw new TokenValidationException("VERIFICATION_TOKEN_EXPIRED", "auth.email.verification.expired");
         }
         final User user = verificationToken.getUser();
         user.setEmailVerified(true);
@@ -175,12 +175,12 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public void resetPassword(ResetPasswordRequest request) {
         final PasswordResetToken token = passwordResetTokenRepository.findByToken(request.token())
-                .orElseThrow(() -> new TokenValidationException("PASSWORD_TOKEN_NOT_FOUND", "Password reset token not found"));
+                .orElseThrow(() -> new TokenValidationException("PASSWORD_TOKEN_NOT_FOUND", "resource.token.not_found"));
         if (token.isUsed()) {
-            throw new TokenValidationException("PASSWORD_TOKEN_USED", "Password reset token already used");
+            throw new TokenValidationException("PASSWORD_TOKEN_USED", "auth.password.reset.used");
         }
         if (token.getExpiresAt().isBefore(Instant.now())) {
-            throw new TokenValidationException("PASSWORD_TOKEN_EXPIRED", "Password reset token expired");
+            throw new TokenValidationException("PASSWORD_TOKEN_EXPIRED", "auth.password.reset.expired");
         }
         final User user = token.getUser();
         user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
@@ -200,7 +200,7 @@ public class AuthServiceImpl implements AuthService {
     public void changePassword(Long userId, ChangePasswordRequest request) {
         final User user = userService.findEntityById(userId);
         if (!passwordEncoder.matches(request.oldPassword(), user.getPasswordHash())) {
-            throw new UserServiceValidationException("INVALID_OLD_PASSWORD", "Existing password does not match");
+            throw new UserServiceValidationException("INVALID_OLD_PASSWORD", "auth.password.old_invalid");
         }
         user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
         user.setPasswordChangedAt(Instant.now());

@@ -1,5 +1,6 @@
 package com.autumnus.spring_boot_starter_template.common.idempotency;
 
+import com.autumnus.spring_boot_starter_template.common.i18n.MessageService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
@@ -33,24 +34,26 @@ public class IdempotencyAspect {
 
     private final IdempotencyService idempotencyService;
     private final ObjectMapper objectMapper;
+    private final MessageService messageService;
 
-    public IdempotencyAspect(IdempotencyService idempotencyService, ObjectMapper objectMapper) {
+    public IdempotencyAspect(IdempotencyService idempotencyService, ObjectMapper objectMapper, MessageService messageService) {
         this.idempotencyService = idempotencyService;
         this.objectMapper = objectMapper;
+        this.messageService = messageService;
     }
 
     @Around("@annotation(idempotent)")
     public Object handleIdempotent(ProceedingJoinPoint joinPoint, Idempotent idempotent) throws Throwable {
         final String idempotencyKey = resolveIdempotencyKey();
         if (!StringUtils.hasText(idempotencyKey)) {
-            throw new IllegalArgumentException("Idempotency-Key header is required");
+            throw new IllegalArgumentException(messageService.getMessage("idempotency.key_required"));
         }
         final String requestHash = buildRequestHash(joinPoint);
         final Optional<IdempotencyKey> existingRecord = idempotencyService.findByKey(idempotencyKey);
         if (existingRecord.isPresent()) {
             final IdempotencyKey record = existingRecord.get();
             if (!record.getRequestHash().equals(requestHash)) {
-                throw new IdempotencyKeyConflictException("Idempotency key has already been used with a different payload");
+                throw new IdempotencyKeyConflictException(messageService.getMessage("idempotency.conflict"));
             }
             return deserializeResponse(joinPoint, record);
         }
@@ -97,7 +100,7 @@ public class IdempotencyAspect {
             final MessageDigest digest = MessageDigest.getInstance("SHA-256");
             return HexFormat.of().formatHex(digest.digest(payload.getBytes(StandardCharsets.UTF_8)));
         } catch (JsonProcessingException | NoSuchAlgorithmException ex) {
-            throw new IllegalStateException("Failed to create idempotency hash", ex);
+            throw new IllegalStateException(messageService.getMessage("idempotency.hash_failed"), ex);
         }
     }
 

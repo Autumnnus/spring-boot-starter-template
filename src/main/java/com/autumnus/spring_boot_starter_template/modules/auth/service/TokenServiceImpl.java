@@ -44,15 +44,15 @@ public class TokenServiceImpl implements TokenService {
     @Transactional(readOnly = true)
     public RefreshToken validateRefreshToken(String token) {
         final RefreshToken refreshToken = refreshTokenRepository.findByToken(token)
-                .orElseThrow(() -> new TokenValidationException("REFRESH_TOKEN_NOT_FOUND", "Refresh token not found"));
+                .orElseThrow(() -> new TokenValidationException("REFRESH_TOKEN_NOT_FOUND", "resource.token.not_found"));
         if (refreshToken.isRevoked()) {
-            throw new TokenValidationException("REFRESH_TOKEN_REVOKED", "Refresh token has been revoked");
+            throw new TokenValidationException("REFRESH_TOKEN_REVOKED", "auth.token.refresh_revoked");
         }
         if (refreshToken.getExpiresAt().isBefore(Instant.now())) {
-            throw new TokenValidationException("REFRESH_TOKEN_EXPIRED", "Refresh token has expired");
+            throw new TokenValidationException("REFRESH_TOKEN_EXPIRED", "auth.token.refresh_expired");
         }
         if (!jwtTokenProvider.validateToken(token)) {
-            throw new TokenValidationException("REFRESH_TOKEN_INVALID", "Refresh token is invalid");
+            throw new TokenValidationException("REFRESH_TOKEN_INVALID", "auth.token.refresh_invalid");
         }
         return refreshToken;
     }

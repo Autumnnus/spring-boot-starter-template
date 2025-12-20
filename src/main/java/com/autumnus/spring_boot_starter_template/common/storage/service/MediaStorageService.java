@@ -1,5 +1,6 @@
 package com.autumnus.spring_boot_starter_template.common.storage.service;
 
+import com.autumnus.spring_boot_starter_template.common.i18n.MessageService;
 import com.autumnus.spring_boot_starter_template.common.storage.config.S3Properties;
 import com.autumnus.spring_boot_starter_template.common.storage.dto.MediaAsset;
 import com.autumnus.spring_boot_starter_template.common.storage.exception.MediaStorageException;
@@ -62,20 +63,22 @@ public class MediaStorageService {
     private final S3Client s3Client;
     private final S3Properties properties;
     private final ObjectMapper objectMapper;
+    private final MessageService messageService;
 
-    public MediaStorageService(S3Client s3Client, S3Properties properties, ObjectMapper objectMapper) {
+    public MediaStorageService(S3Client s3Client, S3Properties properties, ObjectMapper objectMapper, MessageService messageService) {
         this.s3Client = s3Client;
         this.properties = properties;
         this.objectMapper = objectMapper;
+        this.messageService = messageService;
     }
 
     public List<MediaAsset> storeAll(MediaKind kind, String purpose, List<MediaUpload> uploads) {
         Objects.requireNonNull(kind, "Media kind is required");
         if (uploads == null || uploads.isEmpty()) {
-            throw new MediaValidationException("At least one file must be provided");
+            throw new MediaValidationException(messageService.getMessage("media.min_files"));
         }
         if (kind == MediaKind.IMAGE && (uploads.size() < 1 || uploads.size() > 100)) {
-            throw new MediaValidationException("Image uploads must contain between 1 and 100 files");
+            throw new MediaValidationException(messageService.getMessage("media.max_files"));
         }
         final List<MediaAsset> results = new ArrayList<>(uploads.size());
         for (MediaUpload upload : uploads) {
@@ -90,7 +93,7 @@ public class MediaStorageService {
         validatePurpose(purpose);
         final byte[] content = upload.content();
         if (content == null || content.length == 0) {
-            throw new MediaValidationException("File content cannot be empty");
+            throw new MediaValidationException(messageService.getMessage("media.empty"));
         }
         final String mimeType = normalizeMime(upload.contentType());
         kind.validate(mimeType, upload.size());
@@ -155,10 +158,10 @@ public class MediaStorageService {
         try {
             originalImage = ImageIO.read(new ByteArrayInputStream(content));
             if (originalImage == null) {
-                throw new MediaValidationException("Unable to read image content");
+                throw new MediaValidationException(messageService.getMessage("media.read_failed"));
             }
         } catch (IOException e) {
-            throw new MediaValidationException("Failed to read image content");
+            throw new MediaValidationException(messageService.getMessage("media.read_error"));
         }
         for (MediaVariantDefinition definition : IMAGE_VARIANTS) {
             final MediaVariant variant = definition.variant();
@@ -185,7 +188,7 @@ public class MediaStorageService {
                 ImageIO.write(sourceImage, extension, stream);
                 return stream.toByteArray();
             } catch (IOException e) {
-                throw new MediaStorageException("Failed to buffer original image", e);
+                throw new MediaStorageException(messageService.getMessage("media.buffer_failed"), e);
             }
         }
         try {
@@ -198,7 +201,7 @@ public class MediaStorageService {
                     .toOutputStream(stream);
             return stream.toByteArray();
         } catch (IOException e) {
-            throw new MediaStorageException("Failed to create image variant", e);
+            throw new MediaStorageException(messageService.getMessage("media.variant_failed"), e);
         }
     }
 
@@ -207,7 +210,7 @@ public class MediaStorageService {
             final byte[] manifestBytes = objectMapper.writeValueAsBytes(manifest);
             putObject(manifestKey, "application/json", manifestBytes);
         } catch (JsonProcessingException e) {
-            throw new MediaStorageException("Unable to serialize media manifest", e);
+            throw new MediaStorageException(messageService.getMessage("media.manifest.serialize_failed"), e);
         }
     }
 
@@ -221,7 +224,7 @@ public class MediaStorageService {
                     .build();
             s3Client.putObject(request, RequestBody.fromBytes(content));
         } catch (S3Exception ex) {
-            throw new MediaStorageException("Failed to upload object to S3", ex);
+            throw new MediaStorageException(messageService.getMessage("media.s3.upload_failed"), ex);
         }
     }
 
@@ -235,7 +238,7 @@ public class MediaStorageService {
         } catch (NoSuchKeyException ex) {
             log.warn("Attempted to delete missing S3 object: {}", key);
         } catch (S3Exception ex) {
-            throw new MediaStorageException("Failed to delete S3 object: " + key, ex);
+            throw new MediaStorageException(messageService.getMessage("media.s3.delete_failed", key), ex);
         }
     }
 
@@ -252,7 +255,7 @@ public class MediaStorageService {
             final byte[] hash = digest.digest(content);
             return HexFormat.of().formatHex(hash).substring(0, 12);
         } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 algorithm not available", e);
+            throw new IllegalStateException(messageService.getMessage("media.sha256.unavailable"), e);
         }
     }
 
@@ -265,7 +268,7 @@ public class MediaStorageService {
 
     private void validatePurpose(String purpose) {
         if (!StringUtils.hasText(purpose)) {
-            throw new MediaValidationException("Purpose is required");
+            throw new MediaValidationException(messageService.getMessage("media.purpose.required"));
         }
     }
 

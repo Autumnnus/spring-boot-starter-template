@@ -1,5 +1,6 @@
 package com.autumnus.spring_boot_starter_template.modules.auth.oauth2;
 
+import com.autumnus.spring_boot_starter_template.common.i18n.MessageService;
 import com.autumnus.spring_boot_starter_template.modules.users.entity.*;
 import com.autumnus.spring_boot_starter_template.modules.users.repository.RoleRepository;
 import com.autumnus.spring_boot_starter_template.modules.users.repository.UserRepository;
@@ -27,6 +28,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final MessageService messageService;
 
     @Override
     @Transactional
@@ -42,7 +44,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         String providerId = oauth2User.getAttribute("sub");
 
         if (email == null) {
-            throw new OAuth2AuthenticationException("Email not found from OAuth2 provider");
+            throw new OAuth2AuthenticationException(messageService.getMessage("auth.oauth2.email_missing"));
         }
 
         User user = userRepository.findByEmail(email)
@@ -86,7 +88,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
         // Verify default USER role exists
         if (roleRepository.findByName(RoleName.USER).isEmpty()) {
-            throw new RuntimeException("Default USER role not found");
+            throw new RuntimeException(messageService.getMessage("auth.oauth2.default_role_missing"));
         }
         user.getRoles().add(RoleName.USER);
 

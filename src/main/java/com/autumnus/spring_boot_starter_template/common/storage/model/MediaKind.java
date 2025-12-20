@@ -1,5 +1,6 @@
 package com.autumnus.spring_boot_starter_template.common.storage.model;
 
+import com.autumnus.spring_boot_starter_template.common.i18n.MessageServiceHolder;
 import com.autumnus.spring_boot_starter_template.common.storage.exception.MediaValidationException;
 
 import java.util.Locale;
@@ -32,10 +33,10 @@ public enum MediaKind {
 
     public void validate(String mimeType, long size) {
         if (mimeType == null || !allowedMimeTypes.contains(mimeType.toLowerCase(Locale.ROOT))) {
-            throw new MediaValidationException("Unsupported MIME type: " + mimeType);
+            throw new MediaValidationException(MessageServiceHolder.getMessage("media.invalid.type", mimeType));
         }
         if (size > maxSize) {
-            throw new MediaValidationException("File size exceeds the limit of " + maxSize + " bytes for " + name().toLowerCase(Locale.ROOT));
+            throw new MediaValidationException(MessageServiceHolder.getMessage("media.invalid.size", maxSize, name().toLowerCase(Locale.ROOT)));
         }
     }
 
@@ -50,6 +51,6 @@ public enum MediaKind {
         if (normalizedMime != null && MIME_EXTENSION.containsKey(normalizedMime)) {
             return MIME_EXTENSION.get(normalizedMime);
         }
-        throw new MediaValidationException("Unable to resolve file extension for MIME type: " + mimeType);
+        throw new MediaValidationException(MessageServiceHolder.getMessage("media.invalid.extension", mimeType));
     }
 }

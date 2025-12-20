@@ -284,10 +284,10 @@ public class UserServiceImpl implements UserService {
     @Override
     public void checkAccountLocked(User user) {
         if (!user.isActive()) {
-            throw new UserServiceValidationException("USER_INACTIVE", "User account is deactivated");
+            throw new UserServiceValidationException("USER_INACTIVE", "user.inactive");
         }
         if (user.getLockedUntil() != null && user.getLockedUntil().isAfter(Instant.now())) {
-            throw new UserServiceValidationException("USER_LOCKED", "User account is temporarily locked");
+            throw new UserServiceValidationException("USER_LOCKED", "user.locked");
         }
     }
 
@@ -315,7 +315,7 @@ public class UserServiceImpl implements UserService {
         try {
             return objectMapper.readValue(manifestJson, MediaManifest.class);
         } catch (JsonProcessingException e) {
-            throw new MediaStorageException("Failed to parse stored media manifest", e);
+            throw new MediaStorageException("media.manifest.parse_failed", e);
         }
     }
 
@@ -323,7 +323,7 @@ public class UserServiceImpl implements UserService {
         try {
             return objectMapper.writeValueAsString(manifest);
         } catch (JsonProcessingException e) {
-            throw new MediaStorageException("Failed to persist media manifest", e);
+            throw new MediaStorageException("media.manifest.persist_failed", e);
         }
     }
 
@@ -334,7 +334,7 @@ public class UserServiceImpl implements UserService {
         // Verify roles exist in DB
         for (RoleName roleName : targetRoles) {
             if (roleRepository.findByName(roleName).isEmpty()) {
-                throw new ResourceNotFoundException("Role not found: " + roleName);
+                throw new ResourceNotFoundException("resource.role.not_found");
             }
         }
         user.setRoles(new java.util.HashSet<>(targetRoles));
@@ -346,7 +346,7 @@ public class UserServiceImpl implements UserService {
         }
         final Optional<User> existing = userRepository.findByEmail(email);
         if (existing.isPresent() && (excludeId == null || !existing.get().getId().equals(excludeId))) {
-            throw new UserServiceValidationException("EMAIL_IN_USE", "Email is already in use");
+            throw new UserServiceValidationException("EMAIL_IN_USE", "user.email.in_use");
         }
     }
 
@@ -356,7 +356,7 @@ public class UserServiceImpl implements UserService {
         }
         final Optional<User> existing = userRepository.findByUsername(username);
         if (existing.isPresent() && (excludeId == null || !existing.get().getId().equals(excludeId))) {
-            throw new UserServiceValidationException("USERNAME_IN_USE", "Username is already in use");
+            throw new UserServiceValidationException("USERNAME_IN_USE", "user.username.in_use");
         }
     }
 }
