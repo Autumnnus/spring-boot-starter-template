@@ -33,8 +33,18 @@ public class OpenApiConfig {
                                         .in("header")
                                         .name("Idempotency-Key")
                                         .required(false)
-                                        .description("Idempotency Key")
+                                        .description("Idempotency Key for write operations")
                                         .schema(new io.swagger.v3.oas.models.media.StringSchema())
+                        )
+                        .addParameters("AcceptLanguageHeader",
+                                new io.swagger.v3.oas.models.parameters.Parameter()
+                                        .in("header")
+                                        .name("Accept-Language")
+                                        .required(false)
+                                        .description("Preferred language for response messages (en, tr)")
+                                        .schema(new io.swagger.v3.oas.models.media.StringSchema()
+                                                ._default("en")
+                                                ._enum(java.util.List.of("en", "tr")))
                         )
                 );
     }
@@ -43,6 +53,7 @@ public class OpenApiConfig {
     public OperationCustomizer customize() {
         return (operation, handlerMethod) -> {
             operation.addParametersItem(new io.swagger.v3.oas.models.parameters.Parameter().$ref("#/components/parameters/IdempotencyKeyHeader"));
+            operation.addParametersItem(new io.swagger.v3.oas.models.parameters.Parameter().$ref("#/components/parameters/AcceptLanguageHeader"));
             return operation;
         };
     }
