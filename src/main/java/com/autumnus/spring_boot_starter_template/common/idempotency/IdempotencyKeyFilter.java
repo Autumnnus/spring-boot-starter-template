@@ -17,6 +17,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Locale;
 
@@ -82,6 +83,7 @@ public class IdempotencyKeyFilter extends OncePerRequestFilter {
         if (!StringUtils.hasText(idempotencyKey)) {
             response.setStatus(HttpStatus.BAD_REQUEST.value());
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            response.setCharacterEncoding(StandardCharsets.UTF_8.name());
             final String traceId = RequestContextHolder.getContext().getTraceId();
             final ApiError payload = ApiError.of(
                     "IDEMPOTENCY_KEY_REQUIRED",
@@ -97,6 +99,7 @@ public class IdempotencyKeyFilter extends OncePerRequestFilter {
         if (Boolean.FALSE.equals(wasMarked)) {
             response.setStatus(HttpStatus.CONFLICT.value());
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            response.setCharacterEncoding(StandardCharsets.UTF_8.name());
             final String traceId = RequestContextHolder.getContext().getTraceId();
             final ApiError payload = ApiError.of(
                     "IDEMPOTENCY_KEY_ALREADY_USED",
