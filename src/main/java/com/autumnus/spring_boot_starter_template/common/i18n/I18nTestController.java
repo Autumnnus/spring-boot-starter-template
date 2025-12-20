@@ -1,18 +1,21 @@
 package com.autumnus.spring_boot_starter_template.common.i18n;
 
-import com.autumnus.spring_boot_starter_template.common.api.ApiResponse;
-import com.autumnus.spring_boot_starter_template.common.exception.ResourceNotFoundException;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.RequiredArgsConstructor;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
+
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
+import com.autumnus.spring_boot_starter_template.common.api.ApiResponse;
+import com.autumnus.spring_boot_starter_template.common.context.RequestContextHolder;
+import com.autumnus.spring_boot_starter_template.common.exception.ResourceNotFoundException;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Test controller to demonstrate i18n functionality.
@@ -38,7 +41,7 @@ public class I18nTestController {
         messages.put("login_success", messageService.getMessage("auth.login.success"));
         messages.put("user_created", messageService.getMessage("user.created"));
 
-        return ApiResponse.success(messages);
+        return ApiResponse.ok(RequestContextHolder.getContext().getTraceId(), messages);
     }
 
     @GetMapping("/test-all-locales")
@@ -51,7 +54,7 @@ public class I18nTestController {
         messages.put("en", messageService.getMessage("app.welcome", Locale.ENGLISH));
         messages.put("tr", messageService.getMessage("app.welcome", new Locale("tr")));
 
-        return ApiResponse.success(messages);
+        return ApiResponse.ok(RequestContextHolder.getContext().getTraceId(), messages);
     }
 
     @GetMapping("/test-parameters")
@@ -65,7 +68,7 @@ public class I18nTestController {
         messages.put("welcome_with_param", messageService.getMessage("email.welcome.subject", appName));
         messages.put("min_length", messageService.getMessage("validation.min_length", 8));
 
-        return ApiResponse.success(messages);
+        return ApiResponse.ok(RequestContextHolder.getContext().getTraceId(), messages);
     }
 
     @GetMapping("/test-error")

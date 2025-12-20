@@ -24,7 +24,7 @@ public class MessageService {
      * @return the translated message
      */
     public String getMessage(String code) {
-        return getMessage(code, null);
+        return getMessage(code);
     }
 
     /**
