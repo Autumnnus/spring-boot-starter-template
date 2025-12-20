@@ -25,8 +25,8 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         final User user = userRepository.findByEmail(username)
                 .or(() -> userRepository.findByUsername(username))
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
-        final Set<SimpleGrantedAuthority> authorities = user.getRoleAssignments().stream()
-                .map(assignment -> new SimpleGrantedAuthority("ROLE_" + assignment.getRole().getName().name()))
+        final Set<SimpleGrantedAuthority> authorities = user.getRoles().stream()
+                .map(roleName -> new SimpleGrantedAuthority("ROLE_" + roleName.name()))
                 .collect(Collectors.toUnmodifiableSet());
         return new UserPrincipal(
                 user.getId(),

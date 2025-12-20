@@ -8,7 +8,7 @@ import com.autumnus.spring_boot_starter_template.modules.users.dto.UserResponse;
 import com.autumnus.spring_boot_starter_template.modules.users.dto.UserUpdateRequest;
 import com.autumnus.spring_boot_starter_template.modules.users.entity.RoleName;
 import com.autumnus.spring_boot_starter_template.modules.users.entity.User;
-import com.autumnus.spring_boot_starter_template.modules.users.entity.UserRoleAssignment;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -61,11 +61,7 @@ public class UserMapper {
     }
 
     public Set<RoleName> extractRoleNames(User user) {
-        return user.getRoleAssignments()
-                .stream()
-                .map(UserRoleAssignment::getRole)
-                .map(role -> role.getName())
-                .collect(Collectors.toUnmodifiableSet());
+        return user.getRoles();
     }
 
     private MediaResourceResponse mapProfilePhoto(User user) {

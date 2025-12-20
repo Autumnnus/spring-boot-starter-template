@@ -28,6 +28,5 @@ public class Role extends BaseEntity {
     )
     private Set<Permission> permissions = new HashSet<>();
 
-    @OneToMany(mappedBy = "role")
-    private Set<UserRoleAssignment> userAssignments = new HashSet<>();
+
 }

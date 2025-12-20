@@ -1,11 +1,17 @@
 package com.autumnus.spring_boot_starter_template.modules.users.service;
 
+import com.autumnus.spring_boot_starter_template.modules.users.entity.User;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 
 import java.util.Collection;
 import java.util.Collections;
-public class UserPrincipal implements UserDetails {
+import java.util.Map;
+import java.util.stream.Collectors;
+
+public class UserPrincipal implements UserDetails, OAuth2User {
 
     private final Long userId;
     private final String email;
@@ -13,6 +19,7 @@ public class UserPrincipal implements UserDetails {
     private final String password;
     private final Collection<? extends GrantedAuthority> authorities;
     private final boolean active;
+    private Map<String, Object> attributes;
 
     public UserPrincipal(
             Long userId,
@@ -37,6 +44,19 @@ public class UserPrincipal implements UserDetails {
             Collection<? extends GrantedAuthority> authorities
     ) {
         return new UserPrincipal(userId, email, username, "", authorities, true);
+    }
+
+    public static UserPrincipal create(User user, Map<String, Object> attributes, Collection<? extends GrantedAuthority> authorities) {
+        UserPrincipal userPrincipal = new UserPrincipal(
+                user.getId(),
+                user.getEmail(),
+                user.getUsername(),
+                user.getPasswordHash() != null ? user.getPasswordHash() : "",
+                authorities,
+                user.isActive()
+        );
+        userPrincipal.attributes = attributes;
+        return userPrincipal;
     }
 
     @Override
@@ -84,5 +104,16 @@ public class UserPrincipal implements UserDetails {
     @Override
     public boolean isEnabled() {
         return active;
+    }
+
+    // OAuth2User methods
+    @Override
+    public Map<String, Object> getAttributes() {
+        return attributes;
+    }
+
+    @Override
+    public String getName() {
+        return String.valueOf(userId);
     }
 }

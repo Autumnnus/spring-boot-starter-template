@@ -23,11 +23,21 @@ public class User extends BaseEntity {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(name = "password_hash", nullable = false)
+    @Column(name = "password_hash", nullable = true)
     private String passwordHash;
 
     @Column(nullable = false, unique = true)
     private String username;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "oauth2_provider")
+    private OAuth2Provider oauth2Provider;
+
+    @Column(name = "oauth2_provider_id")
+    private String oauth2ProviderId;
+
+    @Column(name = "oauth2_profile_picture_url", length = 1024)
+    private String oauth2ProfilePictureUrl;
 
     @Column(name = "is_active", nullable = false)
     private boolean active = true;
@@ -44,8 +54,9 @@ public class User extends BaseEntity {
 
     private Instant lockedUntil;
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<UserRoleAssignment> roleAssignments = new HashSet<>();
+    @Convert(converter = RoleSetConverter.class)
+    @Column(name = "roles", nullable = false)
+    private Set<RoleName> roles = new HashSet<>();
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<RefreshToken> refreshTokens = new HashSet<>();

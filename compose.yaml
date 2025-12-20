@@ -1,64 +1,63 @@
 services:
-  app:
-    build: .
-    container_name: spring-boot-starter-app
-    develop:
-      watch:
-        - action: rebuild
-          path: ./src
-    environment:
-      - SPRING_MAIN_ALLOW_BEAN_DEFINITION_OVERRIDING=true
-      - POSTGRES_URI=jdbc:postgresql://postgres
-      - POSTGRES_PORT=${POSTGRES_PORT}
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - RABBITMQ_HOST=${RABBITMQ_HOST}
-      - RABBITMQ_PORT=${RABBITMQ_PORT}
-      - RABBITMQ_USERNAME=${RABBITMQ_USERNAME}
-      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
-      - REDIS_HOST=${REDIS_HOST}
-      - REDIS_PORT=${REDIS_PORT}
-      - ELASTIC_APM_SERVER_URL=http://apm-server:8200
-      - ELASTIC_APM_SERVICE_NAME=spring-boot-starter-template
-      - ELASTIC_APM_ENVIRONMENT=development
-      - ELASTIC_APM_SECRET_TOKEN=${ELASTIC_APM_SECRET_TOKEN}
-      - ELASTICSEARCH_HOSTS=${ELASTICSEARCH_HOSTS}
-      - ELASTICSEARCH_USERNAME=${ELASTICSEARCH_USERNAME}
-      - ELASTICSEARCH_PASSWORD=${ELASTIC_PASSWORD}
-      - JWT_SECRET=${JWT_SECRET}
-      - AWS_S3_BUCKET=${AWS_S3_BUCKET}
-      - AWS_S3_REGION=${AWS_S3_REGION}
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      - AWS_S3_ENDPOINT=${AWS_S3_ENDPOINT}
-      - AWS_S3_PUBLIC_URL=${AWS_S3_PUBLIC_URL}
-    ports:
-      - "8088:8080"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      elasticsearch:
-        condition: service_healthy
-      kibana:
-        condition: service_healthy
-      apm-server:
-        condition: service_started
-  #      notification-service:
+  #  app:
+  #    build: .
+  #    container_name: app
+  #    develop:
+  #      watch:
+  #        - action: rebuild
+  #          path: ./src
+  #    environment:
+  #      - SPRING_MAIN_ALLOW_BEAN_DEFINITION_OVERRIDING=true
+  #      - POSTGRES_URI=jdbc:postgresql://postgres
+  #      - POSTGRES_PORT=${POSTGRES_PORT}
+  #      - POSTGRES_DB=${POSTGRES_DB}
+  #      - POSTGRES_USER=${POSTGRES_USER}
+  #      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+  #      - RABBITMQ_HOST=${RABBITMQ_HOST}
+  #      - RABBITMQ_PORT=${RABBITMQ_PORT}
+  #      - RABBITMQ_USERNAME=${RABBITMQ_USERNAME}
+  #      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
+  #      - REDIS_HOST=${REDIS_HOST}
+  #      - REDIS_PORT=${REDIS_PORT}
+  #      - ELASTIC_APM_SERVER_URL=http://apm-server:8200
+  #      - ELASTIC_APM_SERVICE_NAME=spring-boot-starter-template
+  #      - ELASTIC_APM_ENVIRONMENT=development
+  #      - ELASTIC_APM_SECRET_TOKEN=${ELASTIC_APM_SECRET_TOKEN}
+  #      - ELASTICSEARCH_HOSTS=${ELASTICSEARCH_HOSTS}
+  #      - ELASTICSEARCH_USERNAME=${ELASTICSEARCH_USERNAME}
+  #      - ELASTICSEARCH_PASSWORD=${ELASTIC_PASSWORD}
+  #      - AWS_S3_BUCKET=${AWS_S3_BUCKET}
+  #      - AWS_S3_REGION=${AWS_S3_REGION}
+  #      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+  #      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+  #      - AWS_S3_ENDPOINT=${AWS_S3_ENDPOINT}
+  #      - AWS_S3_PUBLIC_URL=${AWS_S3_PUBLIC_URL}
+  #    ports:
+  #      - "8080:8080"
+  #    depends_on:
+  #      postgres:
+  #        condition: service_healthy
+  #      rabbitmq:
+  #        condition: service_healthy
+  #      redis:
+  #        condition: service_healthy
+  #      elasticsearch:
+  #        condition: service_healthy
+  #      kibana:
+  #        condition: service_healthy
+  #      apm-server:
   #        condition: service_started
+
+
   postgres:
     image: postgres:16-trixie
-    container_name: spring-boot-starter-postgres
+    container_name: postgres-db
     environment:
       - "POSTGRES_DB=${POSTGRES_DB}"
       - "POSTGRES_USER=${POSTGRES_USER}"
       - "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}"
     ports:
-      - "${POSTGRES_PORT}:${POSTGRES_PORT}"
+      - "${POSTGRES_PORT}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -69,9 +68,9 @@ services:
 
   redis:
     image: "redis:latest"
-    container_name: spring-boot-starter-redis
+    container_name: redis
     ports:
-      - "${REDIS_PORT}:${REDIS_PORT}"
+      - "${REDIS_PORT}:6379"
     volumes:
       - redisdata:/data
     healthcheck:
@@ -82,7 +81,7 @@ services:
 
   rabbitmq:
     image: rabbitmq:3.13-management
-    container_name: spring-boot-starter-rabbitmq
+    container_name: rabbitmq
     environment:
       - "RABBITMQ_DEFAULT_USER=${RABBITMQ_USERNAME}"
       - "RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD}"
@@ -99,10 +98,10 @@ services:
 
   redis-insight:
     image: redis/redisinsight:latest
-    container_name: spring-boot-starter-redis-insight
+    container_name: redis-insight
     restart: always
     ports:
-      - "${REDIS_INSIGHT_PORT}:${REDIS_INSIGHT_PORT}"
+      - "${REDIS_INSIGHT_PORT}:5540"
     volumes:
       - redis-insight:/data
 
@@ -115,7 +114,7 @@ services:
     command: >
       bash -c '
         echo "Waiting for Elasticsearch..."
-        until curl -s -u elastic:${ELASTIC_PASSWORD} http://elasticsearch:9200/_cluster/health | grep -vq '"'"'status":"red"'"'"'; do sleep 5; done;
+        until curl -s -u elastic:${ELASTIC_PASSWORD} http://elasticsearch:9200/_cluster/health | grep -vq '"'"'status'"'"':"'"'red'"'"''; do sleep 5; done;
         echo "Setting kibana_system password..."
         curl -u elastic:${ELASTIC_PASSWORD} -X POST http://elasticsearch:9200/_security/user/kibana_system/_password -H "Content-Type: application/json" -d'"'"'{"password":"${KIBANA_PASSWORD}"}'"'"'
         echo "Passwords configured!"
@@ -128,7 +127,7 @@ services:
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.15.3
-    container_name: spring-boot-starter-elasticsearch
+    container_name: elasticsearch
     environment:
       - node.name=elasticsearch
       - cluster.name=docker-cluster
@@ -162,7 +161,7 @@ services:
 
   kibana:
     image: docker.elastic.co/kibana/kibana:8.15.3
-    container_name: spring-boot-starter-kibana
+    container_name: kibana
     environment:
       - SERVERNAME=kibana
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
@@ -171,7 +170,7 @@ services:
       - XPACK_SECURITY_ENABLED=true
       - TELEMETRY_ENABLED=false
     ports:
-      - "${KIBANA_PORT}:${KIBANA_PORT}"
+      - "${KIBANA_PORT}:5601"
     depends_on:
       elasticsearch:
         condition: service_healthy
@@ -188,7 +187,7 @@ services:
 
   apm-server:
     image: docker.elastic.co/apm/apm-server:8.15.3
-    container_name: spring-boot-starter-apm-server
+    container_name: apm-server
     cap_add: [ "CHOWN", "DAC_OVERRIDE", "SETGID", "SETUID" ]
     cap_drop: [ "ALL" ]
     command: >
@@ -212,32 +211,31 @@ services:
         condition: service_healthy
       kibana:
         condition: service_healthy
-
-  notification-service:
-    build: ./notification-service
-    container_name: spring-boot-notification-service
-    develop:
-      watch:
-        - action: rebuild
-          path: ./notification-service/src
-    environment:
-      - SPRING_MAIN_ALLOW_BEAN_DEFINITION_OVERRIDING=true
-      - POSTGRES_URI=jdbc:postgresql://postgres
-      - POSTGRES_PORT=${POSTGRES_PORT}
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - RABBITMQ_HOST=${RABBITMQ_HOST}
-      - RABBITMQ_PORT=${RABBITMQ_PORT}
-      - RABBITMQ_USERNAME=${RABBITMQ_USERNAME}
-      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
-    ports:
-      - "8081:8081"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
+  #  notification-service:
+  #    build: ./notification-service
+  #    container_name: spring-boot-notification-service
+  #    develop:
+  #      watch:
+  #        - action: rebuild
+  #          path: ./notification-service/src
+  #    environment:
+  #      - SPRING_MAIN_ALLOW_BEAN_DEFINITION_OVERRIDING=true
+  #      - POSTGRES_URI=jdbc:postgresql://postgres
+  #      - POSTGRES_PORT=${POSTGRES_PORT}
+  #      - POSTGRES_DB=${POSTGRES_DB}
+  #      - POSTGRES_USER=${POSTGRES_USER}
+  #      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+  #      - RABBITMQ_HOST=${RABBITMQ_HOST}
+  #      - RABBITMQ_PORT=${RABBITMQ_PORT}
+  #      - RABBITMQ_USERNAME=${RABBITMQ_USERNAME}
+  #      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
+  #    ports:
+  #      - "8081:8081"
+  #    depends_on:
+  #      postgres:
+  #        condition: service_healthy
+  #      rabbitmq:
+  #        condition: service_healthy
 
 volumes:
   pgdata:
