@@ -1,10 +1,11 @@
 package com.autumnus.spring_boot_starter_template.common.api;
 
+import java.time.Instant;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
+
 import lombok.Builder;
 import lombok.Getter;
-
-import java.time.Instant;
 
 @Getter
 @Builder

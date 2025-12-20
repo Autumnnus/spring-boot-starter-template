@@ -3,6 +3,7 @@ package com.autumnus.spring_boot_starter_template.modules.users.controller;
 import com.autumnus.spring_boot_starter_template.common.api.ApiResponse;
 import com.autumnus.spring_boot_starter_template.common.api.PaginationMeta;
 import com.autumnus.spring_boot_starter_template.common.context.RequestContextHolder;
+import com.autumnus.spring_boot_starter_template.common.i18n.MessageService;
 import com.autumnus.spring_boot_starter_template.common.idempotency.Idempotent;
 import com.autumnus.spring_boot_starter_template.common.storage.exception.MediaStorageException;
 import com.autumnus.spring_boot_starter_template.modules.users.dto.ProfilePhotoUploadCommand;
@@ -31,9 +32,11 @@ import java.io.IOException;
 public class UserController implements UserApi {
 
     private final UserService userService;
+    private final MessageService messageService;
 
-    public UserController(UserService userService) {
+    public UserController(UserService userService, MessageService messageService) {
         this.userService = userService;
+        this.messageService = messageService;
     }
 
     @GetMapping
@@ -126,7 +129,7 @@ public class UserController implements UserApi {
             final UserResponse response = userService.updateProfilePhoto(id, command);
             return ApiResponse.ok(RequestContextHolder.getContext().getTraceId(), response);
         } catch (IOException e) {
-            throw new MediaStorageException("Failed to read uploaded file", e);
+            throw new MediaStorageException(messageService.getMessage("media.read_failed"), e);
         }
     }
 
@@ -146,7 +149,7 @@ public class UserController implements UserApi {
             final UserResponse response = userService.updateProfilePhoto(principal.getUserId(), command);
             return ApiResponse.ok(RequestContextHolder.getContext().getTraceId(), response);
         } catch (IOException e) {
-            throw new MediaStorageException("Failed to read uploaded file", e);
+            throw new MediaStorageException(messageService.getMessage("media.read_failed"), e);
         }
     }
 

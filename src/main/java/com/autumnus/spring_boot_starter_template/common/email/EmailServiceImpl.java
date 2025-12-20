@@ -1,6 +1,7 @@
 package com.autumnus.spring_boot_starter_template.common.email;
 
 import com.autumnus.spring_boot_starter_template.common.config.EmailProperties;
+import com.autumnus.spring_boot_starter_template.common.i18n.MessageService;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,7 @@ public class EmailServiceImpl implements EmailService {
     private final JavaMailSender mailSender;
     private final SpringTemplateEngine templateEngine;
     private final EmailProperties emailProperties;
+    private final MessageService messageService;
 
     @Override
     @Async
@@ -97,10 +99,10 @@ public class EmailServiceImpl implements EmailService {
             log.debug("Email sent successfully to: {}", to);
         } catch (MessagingException e) {
             log.error("Failed to send email to: {}, error: {}", to, e.getMessage(), e);
-            throw new RuntimeException("Failed to send email", e);
+            throw new RuntimeException(messageService.getMessage("email.failed"), e);
         } catch (Exception e) {
             log.error("Unexpected error while sending email to: {}, error: {}", to, e.getMessage(), e);
-            throw new RuntimeException("Failed to send email", e);
+            throw new RuntimeException(messageService.getMessage("email.failed"), e);
         }
     }
 }

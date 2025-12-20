@@ -1,6 +1,7 @@
 package com.autumnus.spring_boot_starter_template.common.security;
 
 import com.autumnus.spring_boot_starter_template.common.config.SecurityProperties;
+import com.autumnus.spring_boot_starter_template.common.i18n.MessageService;
 import com.autumnus.spring_boot_starter_template.modules.users.service.UserPrincipal;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
@@ -24,19 +25,21 @@ public class JwtTokenProvider {
 
     private final SecretKey signingKey;
     private final SecurityProperties properties;
+    private final MessageService messageService;
 
-    public JwtTokenProvider(SecurityProperties properties) {
+    public JwtTokenProvider(SecurityProperties properties, MessageService messageService) {
         this.properties = properties;
+        this.messageService = messageService;
         final String secret = Objects.requireNonNull(properties.getJwtSecret(), "JWT secret must be configured");
         if (secret.length() < 32) {
-            throw new IllegalArgumentException("JWT secret length must be at least 32 characters");
+            throw new IllegalArgumentException(messageService.getMessage("jwt.secret.too_short"));
         }
         this.signingKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
     public String generateAccessToken(UserDetails userDetails) {
         if (!(userDetails instanceof UserPrincipal principal)) {
-            throw new IllegalArgumentException("UserDetails must be an instance of UserPrincipal");
+            throw new IllegalArgumentException(messageService.getMessage("jwt.userdetails.invalid"));
         }
         return buildToken(
                 principal.getUserId(),

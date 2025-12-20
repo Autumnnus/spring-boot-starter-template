@@ -1,14 +1,8 @@
 package com.autumnus.spring_boot_starter_template.common.rate_limiting;
 
-import com.autumnus.spring_boot_starter_template.common.config.RateLimitingProperties;
-import com.autumnus.spring_boot_starter_template.common.context.RequestContextHolder;
-import com.autumnus.spring_boot_starter_template.common.exception.ApiError;
-import com.autumnus.spring_boot_starter_template.common.security.SecurityUtils;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpHeaders;
@@ -17,7 +11,16 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import java.io.IOException;
+import com.autumnus.spring_boot_starter_template.common.config.RateLimitingProperties;
+import com.autumnus.spring_boot_starter_template.common.context.RequestContextHolder;
+import com.autumnus.spring_boot_starter_template.common.exception.ApiError;
+import com.autumnus.spring_boot_starter_template.common.security.SecurityUtils;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE + 2)
@@ -48,6 +51,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
             response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
             response.setHeader(HttpHeaders.RETRY_AFTER, String.valueOf(properties.getRefillPeriod().toSeconds()));
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            response.setCharacterEncoding(StandardCharsets.UTF_8.name());
             final String traceId = RequestContextHolder.getContext().getTraceId();
             final ApiError payload = ApiError.of("RATE_LIMIT_EXCEEDED", "Too many requests", traceId);
             response.getWriter().write(objectMapper.writeValueAsString(payload));

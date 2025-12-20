@@ -21,7 +21,12 @@ public class NotificationProducer {
             log.warn("Skipping null notification message");
             return;
         }
-        log.info("Publishing notification for user {} with title {}", message.getUserId(), message.getTitle());
-        rabbitTemplate.convertAndSend(properties.getExchange(), properties.getRoutingKey(), message);
+        try {
+            log.info("Publishing notification for user {} with title {}", message.getUserId(), message.getTitle());
+            rabbitTemplate.convertAndSend(properties.getExchange(), properties.getRoutingKey(), message);
+        } catch (Exception e) {
+            log.error("Failed to send notification to RabbitMQ. Exchange: {}, RoutingKey: {}",
+                    properties.getExchange(), properties.getRoutingKey(), e);
+        }
     }
 }

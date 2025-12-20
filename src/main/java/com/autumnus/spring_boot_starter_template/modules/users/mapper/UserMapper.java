@@ -1,5 +1,6 @@
 package com.autumnus.spring_boot_starter_template.modules.users.mapper;
 
+import com.autumnus.spring_boot_starter_template.common.i18n.MessageService;
 import com.autumnus.spring_boot_starter_template.common.storage.dto.MediaFileResponse;
 import com.autumnus.spring_boot_starter_template.common.storage.dto.MediaResourceResponse;
 import com.autumnus.spring_boot_starter_template.common.storage.model.MediaFileDescriptor;
@@ -24,9 +25,11 @@ public class UserMapper {
     private static final Logger log = LoggerFactory.getLogger(UserMapper.class);
 
     private final ObjectMapper objectMapper;
+    private final MessageService messageService;
 
-    public UserMapper(ObjectMapper objectMapper) {
+    public UserMapper(ObjectMapper objectMapper, MessageService messageService) {
         this.objectMapper = objectMapper;
+        this.messageService = messageService;
     }
 
     public void updateEntity(UserUpdateRequest request, User user) {
@@ -83,7 +86,7 @@ public class UserMapper {
             );
         } catch (JsonProcessingException e) {
             log.error("Failed to parse profile photo manifest for user {}", user.getId(), e);
-            throw new IllegalStateException("Profile photo manifest is corrupted", e);
+            throw new IllegalStateException(messageService.getMessage("media.manifest.corrupted"), e);
         }
     }
 

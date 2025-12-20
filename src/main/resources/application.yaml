@@ -108,6 +108,7 @@ application:
       - /swagger-ui/**
       - /v3/api-docs/**
       - /api/v1/auth/**
+      - /api/v1/i18n/**
       - /login/oauth2/**
       - /oauth2/**
       - /oauth-test.html
@@ -117,6 +118,8 @@ application:
     oauth2:
       success-redirect-url: ${OAUTH2_SUCCESS_REDIRECT_URL:http://localhost:8080/oauth-test.html}
       failure-redirect-url: ${OAUTH2_FAILURE_REDIRECT_URL:http://localhost:8080/oauth-test.html}
+  idempotency:
+    key-ttl: PT24H
   email:
     from: ${EMAIL_FROM:noreply@example.com}
     from-name: ${EMAIL_FROM_NAME:Spring Boot Starter}
