@@ -1,23 +1,5 @@
 package com.autumnus.spring_boot_starter_template.common.idempotency;
 
-import com.autumnus.spring_boot_starter_template.common.i18n.MessageService;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import org.aspectj.lang.ProceedingJoinPoint;
-import org.aspectj.lang.annotation.Around;
-import org.aspectj.lang.annotation.Aspect;
-import org.aspectj.lang.reflect.MethodSignature;
-import org.springframework.data.domain.Pageable;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
-import org.springframework.validation.BindingResult;
-import org.springframework.web.context.request.RequestAttributes;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
-
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -25,6 +7,25 @@ import java.time.Instant;
 import java.util.HexFormat;
 import java.util.Optional;
 import java.util.stream.Stream;
+
+import org.aspectj.lang.ProceedingJoinPoint;
+import org.aspectj.lang.annotation.Around;
+import org.aspectj.lang.annotation.Aspect;
+import org.aspectj.lang.reflect.MethodSignature;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+
+import com.autumnus.spring_boot_starter_template.common.i18n.MessageService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 @Aspect
 @Component
@@ -45,9 +46,6 @@ public class IdempotencyAspect {
     @Around("@annotation(idempotent)")
     public Object handleIdempotent(ProceedingJoinPoint joinPoint, Idempotent idempotent) throws Throwable {
         final String idempotencyKey = resolveIdempotencyKey();
-        if (!StringUtils.hasText(idempotencyKey)) {
-            throw new IllegalArgumentException(messageService.getMessage("idempotency.key_required"));
-        }
         final String requestHash = buildRequestHash(joinPoint);
         final Optional<IdempotencyKey> existingRecord = idempotencyService.findByKey(idempotencyKey);
         if (existingRecord.isPresent()) {

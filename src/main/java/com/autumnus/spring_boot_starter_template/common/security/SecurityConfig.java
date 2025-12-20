@@ -1,10 +1,5 @@
 package com.autumnus.spring_boot_starter_template.common.security;
 
-import com.autumnus.spring_boot_starter_template.common.config.SecurityProperties;
-import com.autumnus.spring_boot_starter_template.common.rate_limiting.RateLimitingFilter;
-import com.autumnus.spring_boot_starter_template.modules.auth.oauth2.CustomOAuth2UserService;
-import com.autumnus.spring_boot_starter_template.modules.auth.oauth2.OAuth2AuthenticationFailureHandler;
-import com.autumnus.spring_boot_starter_template.modules.auth.oauth2.OAuth2AuthenticationSuccessHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -19,6 +14,14 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+import com.autumnus.spring_boot_starter_template.common.config.SecurityProperties;
+import com.autumnus.spring_boot_starter_template.common.rate_limiting.RateLimitingFilter;
+import com.autumnus.spring_boot_starter_template.modules.auth.oauth2.CustomOAuth2UserService;
+import com.autumnus.spring_boot_starter_template.modules.auth.oauth2.OAuth2AuthenticationFailureHandler;
+import com.autumnus.spring_boot_starter_template.modules.auth.oauth2.OAuth2AuthenticationSuccessHandler;
+
+import jakarta.servlet.http.HttpServletResponse;
 
 @Configuration
 @EnableMethodSecurity
@@ -55,6 +58,12 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(securityProperties.getPublicEndpoints().toArray(new String[0])).permitAll()
                         .anyRequest().authenticated())
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            response.setContentType("application/json");
+                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                            response.getWriter().write("{\"error\": \"Unauthorized\", \"message\": \"" + authException.getMessage() + "\"}");
+                        }))
                 .authenticationProvider(authenticationProvider)
                 .oauth2Login(oauth2 -> oauth2
                         .userInfoEndpoint(userInfo -> userInfo
