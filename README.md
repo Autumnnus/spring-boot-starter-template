@@ -24,6 +24,7 @@ idempotent writes, RBAC/ABAC authorisation, centralised error handling, and obse
 - **Ready-to-use testing profile** backed by an in-memory H2 database.
 - **Centralised media storage** on Amazon S3 with automatic image variants and manifest metadata.
 - **Real-time notifications** delivered through a dedicated microservice backed by RabbitMQ and WebSockets.
+- **Internationalization (i18n)** with full multi-language support for error messages, validation messages, and notifications (Turkish & English).
 
 ---
 
@@ -100,6 +101,7 @@ src/main/java/com/autumnus/spring_boot_starter_template
 │   ├── config/           # Configuration properties and OpenAPI settings
 │   ├── context/          # Request context holder utilities
 │   ├── exception/        # Error model and global exception handler
+│   ├── i18n/             # Internationalization configuration and MessageService
 │   ├── idempotency/      # @Idempotent aspect and persistence layer
 │   ├── logging/          # Trace id filter and MDC integration
 │   ├── persistence/      # Base JPA entities
@@ -283,6 +285,96 @@ All emails are sent asynchronously and use professional responsive HTML template
 | `/api/v1/auth/logout`              | POST   | Logout and revoke token        |
 | `/oauth2/authorization/google`     | GET    | Initiate Google OAuth2 login   |
 
+## 🌍 Internationalization (i18n)
+
+The application provides full multi-language support for all user-facing messages including error messages, validation messages, and notifications. Currently supported languages are **English (en)** and **Turkish (tr)**.
+
+### How it Works
+
+- **Language Detection:** The application automatically detects the user's preferred language from the `Accept-Language` HTTP header.
+- **Default Language:** English is used as the default fallback language.
+- **Message Resolution:** All messages are stored in property files under `src/main/resources/i18n/`:
+  - `messages_en.properties` / `messages_tr.properties` - General messages
+  - `validation_en.properties` / `validation_tr.properties` - Validation messages
+
+### Using MessageService
+
+The `MessageService` provides convenient methods for retrieving localized messages:
+
+```java
+@Service
+@RequiredArgsConstructor
+public class MyService {
+    private final MessageService messageService;
+
+    public void doSomething() {
+        // Get message for current locale (from Accept-Language header)
+        String message = messageService.getMessage("user.created");
+
+        // Get message with parameters
+        String welcome = messageService.getMessage("email.welcome.subject", "MyApp");
+
+        // Get message for specific locale
+        String trMessage = messageService.getMessage("user.created", new Locale("tr"));
+
+        // Get message with default fallback
+        String custom = messageService.getMessageOrDefault("custom.key", "Default message");
+    }
+}
+```
+
+### Testing i18n
+
+Test endpoints are available at `/api/v1/i18n` to verify language support:
+
+```bash
+# Test English (default)
+curl -X GET http://localhost:8080/api/v1/i18n/test \
+  -H "Accept-Language: en"
+
+# Test Turkish
+curl -X GET http://localhost:8080/api/v1/i18n/test \
+  -H "Accept-Language: tr"
+
+# Test all locales
+curl -X GET http://localhost:8080/api/v1/i18n/test-all-locales
+
+# Test error message localization
+curl -X GET http://localhost:8080/api/v1/i18n/test-error \
+  -H "Accept-Language: tr"
+```
+
+### Adding New Languages
+
+To add support for a new language:
+
+1. Create new message files: `messages_{locale}.properties` and `validation_{locale}.properties`
+2. Copy the content from English files and translate all values
+3. The system will automatically detect and use the new language based on the `Accept-Language` header
+
+Example for German (de):
+```properties
+# messages_de.properties
+app.welcome=Willkommen bei Spring Boot Starter Template
+user.created=Benutzer erfolgreich erstellt
+# ... etc
+```
+
+### Message Keys Reference
+
+All available message keys can be found in:
+- `src/main/resources/i18n/messages_en.properties` - Application messages
+- `src/main/resources/i18n/validation_en.properties` - Validation messages
+
+Key categories include:
+- `error.*` - Error messages
+- `auth.*` - Authentication & authorization messages
+- `user.*` - User management messages
+- `role.*` / `permission.*` - RBAC messages
+- `media.*` - Media storage messages
+- `notification.*` - Notification messages
+- `validation.*` - Validation messages
+
 ## 🔐 Security Model
 
 - **Authentication:** Incoming requests must carry a `Bearer <token>` header containing a JWT generated with the
@@ -390,6 +482,7 @@ Repeat the same call with the identical key to receive the cached `201 Created` 
 - Spring Data JPA
 - Spring Mail (JavaMailSender)
 - Thymeleaf (email templates)
+- Spring i18n (internationalization)
 - Bucket4j (rate limiting)
 - ModelMapper (DTO mapping)
 - JJWT (JWT signing)
