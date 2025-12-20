@@ -99,16 +99,20 @@ public class UserServiceImpl implements UserService {
         user.setPasswordHash(passwordEncoder.encode(request.password()));
         user.setActive(request.active() == null || request.active());
         user.setPasswordChangedAt(Instant.now());
+        user.setPreferredLanguage(request.preferredLanguage() != null ? request.preferredLanguage() : "en");
         assignRoles(user, request.roles(), null);
         final User saved = userRepository.save(user);
         AuditContextHolder.setEntityId(saved.getId().toString());
         AuditContextHolder.setNewValue(userMapper.toResponse(saved, userMapper.extractRoleNames(saved)));
-        notificationProducer.send(new NotificationMessage(
-                saved.getId(),
-                "Welcome to Autumnus",
-                "Hi %s, your account is ready to use.".formatted(saved.getUsername()),
-                NotificationMessage.NotificationType.SUCCESS
-        ));
+        notificationProducer.send(NotificationMessage.builder()
+                .userId(saved.getId())
+                .recipientLanguage(saved.getPreferredLanguage())
+                .titleKey("notification.welcome.title")
+                .messageKey("notification.welcome.message")
+                .messageArgs(new Object[]{saved.getUsername()})
+                .type(NotificationMessage.NotificationType.SUCCESS)
+                .build()
+        );
         return userMapper.toResponse(saved, userMapper.extractRoleNames(saved));
     }
 
@@ -193,6 +197,9 @@ public class UserServiceImpl implements UserService {
         if (request.username() != null && !Objects.equals(request.username(), user.getUsername())) {
             validateUsernameUniqueness(request.username(), user.getId());
             user.setUsername(request.username());
+        }
+        if (request.preferredLanguage() != null && !Objects.equals(request.preferredLanguage(), user.getPreferredLanguage())) {
+            user.setPreferredLanguage(request.preferredLanguage());
         }
         final User saved = userRepository.save(user);
         AuditContextHolder.setNewValue(userMapper.toResponse(saved, userMapper.extractRoleNames(saved)));

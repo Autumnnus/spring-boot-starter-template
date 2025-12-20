@@ -8,6 +8,8 @@ public record UpdateProfileRequest(
         String email,
 
         @NotBlank(message = "username is required")
-        String username
+        String username,
+
+        String preferredLanguage
 ) {
 }

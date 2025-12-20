@@ -79,6 +79,7 @@ public class AuthServiceImpl implements AuthService {
                 .username(request.username())
                 .password(request.password())
                 .roles(EnumSet.of(RoleName.USER))
+                .preferredLanguage(request.preferredLanguage())
                 .active(true)
                 .build());
         userService.findEntityByEmail(request.email()).ifPresent(this::createEmailVerificationToken);

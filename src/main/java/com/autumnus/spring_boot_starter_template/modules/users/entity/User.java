@@ -1,13 +1,23 @@
 package com.autumnus.spring_boot_starter_template.modules.users.entity;
 
-import com.autumnus.spring_boot_starter_template.common.persistence.BaseEntity;
-import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
-
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
+
+import com.autumnus.spring_boot_starter_template.common.persistence.BaseEntity;
+
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Index;
+import jakarta.persistence.Lob;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.Setter;
 
 @Entity
 @Table(
@@ -64,4 +74,7 @@ public class User extends BaseEntity {
     @Lob
     @Column(name = "profile_photo_manifest")
     private String profilePhotoManifest;
+
+    @Column(name = "preferred_language", length = 10)
+    private String preferredLanguage = "en";
 }
