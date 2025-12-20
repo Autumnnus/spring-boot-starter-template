@@ -31,8 +31,8 @@ idempotent writes, RBAC/ABAC authorisation, centralised error handling, and obse
 
 | Service                          | URL                                                                                        | Description                   |
 |----------------------------------|--------------------------------------------------------------------------------------------|-------------------------------|
-| **Swagger (Gateway)**            | [http://localhost:8088/swagger-ui/index.html](http://localhost:8088/swagger-ui/index.html) | API dokümantasyonu            |
-| **OAuth2 Test Page**             | [http://localhost:8088/oauth-test.html](http://localhost:8088/oauth-test.html)             | OAuth2 & Auth Testing         |
+| **Swagger (Gateway)**            | [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html) | API dokümantasyonu            |
+| **OAuth2 Test Page**             | [http://localhost:8080/oauth-test.html](http://localhost:8080/oauth-test.html)             | OAuth2 & Auth Testing         |
 | **Redis Insight**                | [http://localhost:5540](http://localhost:5540)                                             | Redis yönetim arayüzü         |
 | **RabbitMQ Management**          | [http://localhost:15672](http://localhost:15672)                                           | Queue Management              |
 | **Notification Service Swagger** | [http://localhost:8081/swagger-ui/index.html](http://localhost:8081/swagger-ui/index.html) | Notification microservice API |
@@ -243,7 +243,7 @@ Integrated OAuth2 support for social authentication:
 - **Profile Sync** - Syncs profile picture from OAuth2 provider
 - **Email Verification** - OAuth2 users are auto-verified
 
-**Test OAuth2:** Visit [http://localhost:8088/oauth-test.html](http://localhost:8088/oauth-test.html)
+**Test OAuth2:** Visit [http://localhost:8080/oauth-test.html](http://localhost:8080/oauth-test.html)
 
 ### Email Service
 
@@ -260,11 +260,11 @@ All emails are sent asynchronously and use professional responsive HTML template
 
 ### Quick Test
 
-1. **OAuth2 Test Page:** [http://localhost:8088/oauth-test.html](http://localhost:8088/oauth-test.html)
-2. **Swagger UI:** [http://localhost:8088/swagger-ui/index.html](http://localhost:8088/swagger-ui/index.html)
+1. **OAuth2 Test Page:** [http://localhost:8080/oauth-test.html](http://localhost:8080/oauth-test.html)
+2. **Swagger UI:** [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)
 3. **Traditional Login:**
    ```bash
-   curl -X POST http://localhost:8088/api/v1/auth/login \
+   curl -X POST http://localhost:8080/api/v1/auth/login \
      -H "Content-Type: application/json" \
      -d '{"email":"user@example.com","password":"password"}'
    ```
@@ -354,8 +354,8 @@ the UI's authorise dialog.
    ./mvnw spring-boot:run
    ```
 5. **Test the system:**
-   - **Swagger UI:** [http://localhost:8088/swagger-ui/index.html](http://localhost:8088/swagger-ui/index.html)
-   - **OAuth2 Test:** [http://localhost:8088/oauth-test.html](http://localhost:8088/oauth-test.html)
+   - **Swagger UI:** [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)
+   - **OAuth2 Test:** [http://localhost:8080/oauth-test.html](http://localhost:8080/oauth-test.html)
 
 ### Example Request Flow
 

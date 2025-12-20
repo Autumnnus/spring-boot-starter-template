@@ -46,18 +46,7 @@ public class UserPrincipal implements UserDetails, OAuth2User {
         return new UserPrincipal(userId, email, username, "", authorities, true);
     }
 
-    public static UserPrincipal create(User user, Map<String, Object> attributes) {
-        Collection<GrantedAuthority> authorities = user.getRoleAssignments().stream()
-                .flatMap(assignment -> {
-                    var role = assignment.getRole();
-                    var roleAuthorities = role.getPermissions().stream()
-                            .map(permission -> new SimpleGrantedAuthority(permission.getResource() + ":" + permission.getAction()))
-                            .collect(Collectors.toList());
-                    roleAuthorities.add(new SimpleGrantedAuthority("ROLE_" + role.getName()));
-                    return roleAuthorities.stream();
-                })
-                .collect(Collectors.toList());
-
+    public static UserPrincipal create(User user, Map<String, Object> attributes, Collection<? extends GrantedAuthority> authorities) {
         UserPrincipal userPrincipal = new UserPrincipal(
                 user.getId(),
                 user.getEmail(),

@@ -305,19 +305,19 @@
             <div class="steps-container">
                 <div class="step">
                     <strong>Register:</strong> POST /api/v1/auth/register
-                    <div class="code-block">curl -X POST http://localhost:8088/api/v1/auth/register \
+                    <div class="code-block">curl -X POST http://localhost:8080/api/v1/auth/register \
   -H "Content-Type: application/json" \
   -d '{"email":"user@example.com","username":"user","password":"Pass123!"}'</div>
                 </div>
                 <div class="step">
                     <strong>Login:</strong> POST /api/v1/auth/login
-                    <div class="code-block">curl -X POST http://localhost:8088/api/v1/auth/login \
+                    <div class="code-block">curl -X POST http://localhost:8080/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"user@example.com","password":"Pass123!"}'</div>
                 </div>
                 <div class="step">
                     <strong>OAuth2 Login:</strong> GET /oauth2/authorization/google
-                    <div class="code-block">Open in browser: http://localhost:8088/oauth2/authorization/google</div>
+                    <div class="code-block">Open in browser: http://localhost:8080/oauth2/authorization/google</div>
                 </div>
             </div>
         </div>
@@ -328,7 +328,7 @@
             <p><strong>Before testing OAuth2, ensure you have:</strong></p>
             <p>1. Set up Google OAuth2 credentials in Google Cloud Console</p>
             <p>2. Added environment variables: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET</p>
-            <p>3. Configured redirect URI: http://localhost:8088/login/oauth2/code/google</p>
+            <p>3. Configured redirect URI: http://localhost:8080/login/oauth2/code/google</p>
             <p>4. See AUTH_SETUP.md for detailed setup instructions</p>
         </div>
     </div>

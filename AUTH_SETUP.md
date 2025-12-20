@@ -57,7 +57,7 @@ This document provides detailed information about the authentication system impl
 5. Configure OAuth consent screen if not already done
 6. Application type: **Web application**
 7. Add authorized redirect URIs:
-   - `http://localhost:8088/login/oauth2/code/google` (Development)
+   - `http://localhost:8080/login/oauth2/code/google` (Development)
    - `https://yourdomain.com/login/oauth2/code/google` (Production)
 8. Copy the **Client ID** and **Client Secret**
 
@@ -138,7 +138,7 @@ MAIL_USERNAME=your-email@gmail.com
 MAIL_PASSWORD=your-16-char-app-password
 EMAIL_FROM=noreply@yourdomain.com
 EMAIL_FROM_NAME=Your App Name
-APP_BASE_URL=http://localhost:8088
+APP_BASE_URL=http://localhost:8080
 ```
 
 ### Alternative Email Providers
@@ -353,7 +353,7 @@ MAIL_USERNAME=your-email@gmail.com
 MAIL_PASSWORD=your-app-password
 EMAIL_FROM=noreply@example.com
 EMAIL_FROM_NAME=Spring Boot Starter
-APP_BASE_URL=http://localhost:8088
+APP_BASE_URL=http://localhost:8080
 ```
 
 ## Testing
@@ -364,7 +364,7 @@ Create a test endpoint or use existing registration flow:
 
 ```bash
 # Register a new user
-curl -X POST http://localhost:8088/api/v1/auth/register \
+curl -X POST http://localhost:8080/api/v1/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "email": "test@example.com",
@@ -378,7 +378,7 @@ Check your email inbox for the verification email.
 ### Test OAuth2 Login
 
 1. Start the application
-2. Navigate to: `http://localhost:8088/oauth2/authorization/google`
+2. Navigate to: `http://localhost:8080/oauth2/authorization/google`
 3. Login with your Google account
 4. You should be redirected to your frontend with tokens
 
@@ -386,7 +386,7 @@ Check your email inbox for the verification email.
 
 ```bash
 # Request password reset
-curl -X POST http://localhost:8088/api/v1/auth/request-password-reset \
+curl -X POST http://localhost:8080/api/v1/auth/request-password-reset \
   -H "Content-Type: application/json" \
   -d '{
     "email": "test@example.com"

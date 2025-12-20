@@ -16,7 +16,7 @@ import com.autumnus.spring_boot_starter_template.modules.users.dto.*;
 import com.autumnus.spring_boot_starter_template.modules.users.entity.Role;
 import com.autumnus.spring_boot_starter_template.modules.users.entity.RoleName;
 import com.autumnus.spring_boot_starter_template.modules.users.entity.User;
-import com.autumnus.spring_boot_starter_template.modules.users.entity.UserRoleAssignment;
+
 import com.autumnus.spring_boot_starter_template.modules.users.mapper.UserMapper;
 import com.autumnus.spring_boot_starter_template.modules.users.repository.RoleRepository;
 import com.autumnus.spring_boot_starter_template.modules.users.repository.UserRepository;
@@ -331,17 +331,13 @@ public class UserServiceImpl implements UserService {
         final Set<RoleName> targetRoles = (roles == null || roles.isEmpty())
                 ? Set.of(RoleName.USER)
                 : roles;
-        user.getRoleAssignments().clear();
+        // Verify roles exist in DB
         for (RoleName roleName : targetRoles) {
-            final Role role = roleRepository.findByName(roleName)
-                    .orElseThrow(() -> new ResourceNotFoundException("Role not found"));
-            final UserRoleAssignment assignment = new UserRoleAssignment();
-            assignment.setUser(user);
-            assignment.setRole(role);
-            assignment.setAssignedAt(Instant.now());
-            assignment.setAssignedBy(assignedBy);
-            user.getRoleAssignments().add(assignment);
+            if (roleRepository.findByName(roleName).isEmpty()) {
+                throw new ResourceNotFoundException("Role not found: " + roleName);
+            }
         }
+        user.setRoles(new java.util.HashSet<>(targetRoles));
     }
 
     private void validateEmailUniqueness(String email, Long excludeId) {

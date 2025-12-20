@@ -52,8 +52,8 @@ public class JwtTokenProvider {
                 user.getId(),
                 user.getEmail(),
                 user.getUsername(),
-                user.getRoleAssignments().stream()
-                        .map(assignment -> "ROLE_" + assignment.getRole().getName().name())
+                user.getRoles().stream()
+                        .map(roleName -> "ROLE_" + roleName.name())
                         .collect(Collectors.toSet()),
                 properties.getRefreshTokenTtl(),
                 Map.of("type", "refresh"));

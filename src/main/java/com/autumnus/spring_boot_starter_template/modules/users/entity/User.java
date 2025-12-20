@@ -23,7 +23,7 @@ public class User extends BaseEntity {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(name = "password_hash")
+    @Column(name = "password_hash", nullable = true)
     private String passwordHash;
 
     @Column(nullable = false, unique = true)
@@ -54,8 +54,9 @@ public class User extends BaseEntity {
 
     private Instant lockedUntil;
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<UserRoleAssignment> roleAssignments = new HashSet<>();
+    @Convert(converter = RoleSetConverter.class)
+    @Column(name = "roles", nullable = false)
+    private Set<RoleName> roles = new HashSet<>();
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<RefreshToken> refreshTokens = new HashSet<>();

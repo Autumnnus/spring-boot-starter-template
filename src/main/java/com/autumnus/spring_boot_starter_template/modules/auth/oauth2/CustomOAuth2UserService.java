@@ -1,14 +1,13 @@
 package com.autumnus.spring_boot_starter_template.modules.auth.oauth2;
 
-import com.autumnus.spring_boot_starter_template.modules.users.entity.OAuth2Provider;
-import com.autumnus.spring_boot_starter_template.modules.users.entity.Role;
-import com.autumnus.spring_boot_starter_template.modules.users.entity.User;
-import com.autumnus.spring_boot_starter_template.modules.users.entity.UserRoleAssignment;
+import com.autumnus.spring_boot_starter_template.modules.users.entity.*;
 import com.autumnus.spring_boot_starter_template.modules.users.repository.RoleRepository;
 import com.autumnus.spring_boot_starter_template.modules.users.repository.UserRepository;
 import com.autumnus.spring_boot_starter_template.modules.users.service.UserPrincipal;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
@@ -17,6 +16,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -60,7 +61,17 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
         log.info("OAuth2 login successful for user: {} with provider: {}", email, provider);
 
-        return UserPrincipal.create(user, oauth2User.getAttributes());
+        Set<GrantedAuthority> authorities = new HashSet<>();
+        for (RoleName roleName : user.getRoles()) {
+            authorities.add(new SimpleGrantedAuthority("ROLE_" + roleName.name()));
+            roleRepository.findByName(roleName).ifPresent(role -> {
+                role.getPermissions().forEach(permission -> 
+                    authorities.add(new SimpleGrantedAuthority(permission.getResource() + ":" + permission.getAction()))
+                );
+            });
+        }
+
+        return UserPrincipal.create(user, oauth2User.getAttributes(), authorities);
     }
 
     private User createNewUser(String email, String name, OAuth2Provider provider, String providerId, String pictureUrl) {
@@ -73,15 +84,11 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         user.setEmailVerified(true); // OAuth2 users are email verified
         user.setActive(true);
 
-        // Assign default USER role
-        Role userRole = roleRepository.findByName("USER")
-                .orElseThrow(() -> new RuntimeException("Default USER role not found"));
-
-        UserRoleAssignment roleAssignment = new UserRoleAssignment();
-        roleAssignment.setUser(user);
-        roleAssignment.setRole(userRole);
-        roleAssignment.setAssignedAt(Instant.now());
-        user.getRoleAssignments().add(roleAssignment);
+        // Verify default USER role exists
+        if (roleRepository.findByName(RoleName.USER).isEmpty()) {
+            throw new RuntimeException("Default USER role not found");
+        }
+        user.getRoles().add(RoleName.USER);
 
         log.info("Creating new OAuth2 user: {} with provider: {}", email, provider);
 

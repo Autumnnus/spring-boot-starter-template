@@ -9,7 +9,7 @@ public class EmailProperties {
 
     private String from = "noreply@example.com";
     private String fromName = "Spring Boot Starter";
-    private String baseUrl = "http://localhost:8088";
+    private String baseUrl = "http://localhost:8080";
 
     public String getFrom() {
         return from;

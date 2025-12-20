@@ -14,9 +14,7 @@ public final class UserSpecifications {
             if (role == null) {
                 return cb.conjunction();
             }
-            final var assignments = root.join("roleAssignments");
-            final var roleJoin = assignments.join("role");
-            return cb.equal(roleJoin.get("name"), role);
+            return cb.like(root.get("roles").as(String.class), "%" + role.name() + "%");
         };
     }
 

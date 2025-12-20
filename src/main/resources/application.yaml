@@ -22,7 +22,7 @@ spring:
     show-sql: true
     properties:
       hibernate:
-        ddl-auto: create-drop
+        ddl-auto: update
         format_sql: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
     open-in-view: false
@@ -115,12 +115,12 @@ application:
       - /js/**
       - /images/**
     oauth2:
-      success-redirect-url: ${OAUTH2_SUCCESS_REDIRECT_URL:http://localhost:8088/oauth-test.html}
-      failure-redirect-url: ${OAUTH2_FAILURE_REDIRECT_URL:http://localhost:8088/oauth-test.html}
+      success-redirect-url: ${OAUTH2_SUCCESS_REDIRECT_URL:http://localhost:8080/oauth-test.html}
+      failure-redirect-url: ${OAUTH2_FAILURE_REDIRECT_URL:http://localhost:8080/oauth-test.html}
   email:
     from: ${EMAIL_FROM:noreply@example.com}
     from-name: ${EMAIL_FROM_NAME:Spring Boot Starter}
-    base-url: ${APP_BASE_URL:http://localhost:8088}
+    base-url: ${APP_BASE_URL:http://localhost:8080}
   rate-limit:
     capacity: 100
     refill-period: PT1M
